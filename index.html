@@ -269,7 +269,7 @@ async function review(i){const g=MY.games[i],S=[],F=[],b=new Chess();F.push(b.fe
  for(let j=RV.E.length;j<F.length;j++){const o=await ev(F[j],20,RL);if(RV!==id||mode!='review')break;RV.E[j]=pk(o);if(j%3==2||j==F.length-1){rvCalc();rvGo(RV.k,1)}}
  g.rv=id.E;ls.set('ct.my',MY);if(RV!==id||mode!='review'||id.E.length<F.length)return;
  // preload top-10 ladders, nearest to the current move first, one search at a time so a manual step never waits long
- for(let n=0;;n++){const m=S.length,c=Math.max(0,id.k-1),q=[...Array(m).keys()].map(i=>(c+i)%m).find(i=>!id.T[i]);if(q==null)break;const o=await ev(F[q],20,TOP,10);if(RV!==id||mode!='review')break;id.T[q]=tl(o);rvCalc();if(n%5==4)ls.set('ct.my',MY);rvGo(id.k,1)}
+ for(let n=0;;n++){const m=S.length,c=Math.max(0,id.k-1),q=[...Array(m).keys()].map(i=>(c+i)%m).find(i=>!id.T[i]);if(q==null)break;const o=await ev(F[q],20,TOP,10);if(RV!==id||mode!='review')break;id.T[q]=tl(o);await addPlayed(q,id);if(RV!==id||mode!='review')break;rvCalc();if(n%5==4)ls.set('ct.my',MY);rvGo(id.k,1)}
  ls.set('ct.my',MY);if(RV===id&&mode=='review')rvGo(id.k,1)}
 // once a position's top-10 search exists it is the single source for best move, loss and grade
 const TS=j=>{const T=RV.T[j];return T&&T.length?T.slice().sort((a,c)=>c.w-a.w):null},BU=j=>{const T=TS(j);return T?T[0].u:RV.E[j]&&RV.E[j].best};
@@ -304,29 +304,38 @@ function duel(j){const{S,N,E,F}=RV,op=me=='w'?'b':'w',act=j>=0?S[j].color:null;
  [['#dL',me],['#dR',op]].forEach(([s,c])=>{const x=$(s);x.className=(act&&act!=c?'dim':'')+(act==c?' on':'');x.innerHTML=side(c)})}
 // candidate ladder: mover's win% after each of the engine's top-10 moves (MultiPV 10), grade bands measured back from the best
 const TOP='depth 10 movetime 1500';
+// if the played move is not among the MultiPV lines, score it in the same position with the same search (searchmoves), so it sits on the same scale
+const PA=new Set;
+async function addPlayed(j,id){const T=RV.T[j],m=RV.S[j],u=m.from+m.to+(m.promotion||'');if(!T||!T.length||T.some(t=>t.u.slice(0,4)==u.slice(0,4))||PA.has(id.g.d+id.g.opp+j))return;PA.add(id.g.d+id.g.opp+j);
+ const o=await ev(RV.F[j],20,TOP+' searchmoves '+u,1);if(RV===id&&o&&o.best&&o.best.slice(0,4)==u.slice(0,4)){T.push({u,w:+W(o.cp).toFixed(1)});ls.set('ct.my',MY)}}
 async function ladder(j){RV.LD=null;const el=$('#dPlot'),id=RV,k=RV.k,n=RV.N[j],Wd=el.clientWidth||300,H=el.clientHeight||58,msg=t=>el.innerHTML=t?`<text x="${Wd/2}" y="${H-4}" text-anchor="middle" class="sl">${t}</text>`:'';el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);
  if(j<0||!n)return msg('');let T=RV.T[j];
- if(!T){msg('comparing top 10...');const o=await ev(RV.F[j],20,TOP,10);T=RV.T[j]=tl(o);ls.set('ct.my',MY);if(RV!==id||RV.k!=k)return;rvCalc();return rvGo(k,1)}
- if(!T.length)return msg('');T=T.slice().sort((a,c)=>c.w-a.w);
- const f=RV.F[j],b=T[0].w,wh=n.col=='w',mm=n.col==me,x=w=>6+(mm?w:100-w)/100*(Wd-12),y=r=>5+r*(H-10)/9,iT=T.findIndex(t=>t.u.slice(0,4)==n.u.slice(0,4)),pw=iT>=0?T[iT].w:W(-RV.E[j+1].cp);
+ if(!T){msg('comparing top 10...');const o=await ev(RV.F[j],20,TOP,10);RV.T[j]=tl(o);await addPlayed(j,id);ls.set('ct.my',MY);if(RV!==id||RV.k!=k)return;rvCalc();return rvGo(k,1)}
+ if(!T.length)return msg('');if(!T.some(t=>t.u.slice(0,4)==n.u.slice(0,4))&&!PA.has(id.g.d+id.g.opp+j)){await addPlayed(j,id);if(RV!==id||RV.k!=k)return;rvCalc();return rvGo(k,1)}
+ T=T.slice().sort((a,c)=>c.w-a.w);const N=T.length;
+ const f=RV.F[j],b=T[0].w,wh=n.col=='w',mm=n.col==me,x=w=>6+(mm?w:100-w)/100*(Wd-12),y=r=>5+r*(H-10)/Math.max(1,N-1),iT=T.findIndex(t=>t.u.slice(0,4)==n.u.slice(0,4)),pw=iT>=0?T[iT].w:W(-RV.E[j+1].cp);
  const band=(hi,lo,c,o)=>hi>0?`<rect x="${Math.min(x(hi),x(Math.max(0,lo)))}" y="0" width="${Math.abs(x(hi)-x(Math.max(0,lo)))}" height="${H}" fill="var(--${c})" opacity="${o}"/>`:'';
  const P=x(pw);$('#barf').style.height=(wh?pw:100-pw)+'%';
  el.innerHTML=`<rect x="0" y="0" width="${P}" height="${H}" ${cw(me)}/><rect x="${P}" y="0" width="${Wd-P}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${P}" x2="${P}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".35"/>`+band(b,b-10,'good',.2)+band(b-10,b-20,'inac',.18)+band(b-20,b-30,'mist',.18)+band(b-30,0,'blun',.1)+`<line x1="${x(50)}" x2="${x(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${x(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`
-  +`<polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>`<circle cx="${x(t.w)}" cy="${y(i)}" r="${i?2.4:3.3}" fill="rgb(${rk(i/Math.max(1,T.length-1))})"></circle>`).join('')
-  +`<circle cx="${x(pw)}" cy="${iT>=0?y(iT):H-5.5}" r="4.6" fill="var(--${CV[n.cls]})" stroke="var(--ink)" stroke-width="1.3"></circle><circle id="scRing" class="ring" r="6.5" cx="-20" cy="-20"/>`;
- RV.LD={pts:[...T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i})),...(iT<0?[{u:n.u,w:pw,x:x(pw),y:H-5.5,p:1}]:[])],dy:(H-10)/9,wh,mm,n:T.length}}
+  +`<polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>`<circle cx="${x(t.w)}" cy="${y(i)}" r="${i?2.6:3.4}" fill="rgb(${lc(b-t.w)})"></circle>`).join('')
+  +(iT>=0?`<circle cx="${x(pw)}" cy="${y(iT)}" r="4.6" fill="var(--${CV[n.cls]})" stroke="var(--ink)" stroke-width="1.3"></circle>`:'')+`<circle id="scRing" class="ring" r="6.5" cx="-20" cy="-20"/>`;
+ RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT})),dy:(H-10)/Math.max(1,N-1),wh,mm,n:N,b}}
 // hold and slide on the card: every candidate gets an arrow (brightness falls off with distance from the finger), the nearest is green;
 // finger travel is halved for fine control, and sliding above the card settles on the best move, which stays after release
 let SC=null,SG=null;
-const RK=['#7cc21e','#1f9a3a','#b03ca0','#6a2ab0','#3b1466'],hx=c=>[1,3,5].map(k=>parseInt(c.slice(k,k+2),16)),rk=t=>{t=Math.max(0,Math.min(1,t))*(RK.length-1);const i=Math.min(RK.length-2,t|0),f=t-i,a=hx(RK[i]),b=hx(RK[i+1]);return a.map((v,k)=>Math.round(v+(b[k]-v)*f)).join()};
+const hx=c=>[1,3,5].map(k=>parseInt(c.slice(k,k+2),16)),lin=v=>(v/=255)<=.04045?v/12.92:((v+.055)/1.055)**2.4,gam=v=>255*(v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055),
+ ok=c=>{const[r,g,b]=hx(c).map(lin),l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);return[.2104542553*l+.793617785*m-.0040720468*s,1.9779984951*l-2.428592205*m+.4505937099*s,.0259040371*l+.7827717662*m-.808675766*s]},
+ rgb=([L,A,B])=>{const l=(L+.3963377774*A+.2158037573*B)**3,m=(L-.1055613458*A-.0638541728*B)**3,s=(L-.0894841775*A-1.291485548*B)**3;return[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s].map(v=>Math.round(Math.max(0,Math.min(255,gam(v)))))},
+ LS=[[0,'#23a03a'],[5,'#86c43a'],[10,'#e2c12a'],[20,'#d2479a'],[30,'#8a2ec4'],[45,'#4c1784']].map(([t,c])=>[t,ok(c)]),
+ lc=d=>{d=Math.max(0,Math.min(45,d));let i=0;while(i<LS.length-2&&d>LS[i+1][0])i++;const[t0,a]=LS[i],[t1,b]=LS[i+1],f=(d-t0)/(t1-t0);return rgb(a.map((v,k)=>v+(b[k]-v)*f)).join()};
 function scrub(e,ph){const D=$('#duel'),L=RV&&RV.LD,j=RV?RV.k-1:-1;if(!L||mode!='review'||j<0)return;const r=D.getBoundingClientRect();
  if(ph=='down'){try{D.setPointerCapture(e.pointerId)}catch{}SG={x0:e.clientX-r.left,y0:e.clientY-r.top,cx:e.clientX,cy:e.clientY};LN=null;peek=new Chess(RV.F[j]);sel=hl=null}
  if(!SG)return;if(ph=='up'){SG=null;return}
  const vx=SG.x0+(e.clientX-SG.cx)*.5,vy=SG.y0+(e.clientY-SG.cy)*.5,top=e.clientY<r.top,P=L.pts,
   k=top?0:P.reduce((b,p,i)=>{const d=Math.hypot((p.x-vx)/2,p.y-vy);return d<b[1]?[i,d]:b},[0,1e9])[0],q=P[k];
- const tc=p=>rk(p.p?1:p.r/Math.max(1,L.n-1));SC=P.map((p,i)=>({p,i,a:.22+.6*Math.exp(-(((p.y-q.y)/L.dy)**2+((p.x-q.x)/40)**2)/2)})).filter(o=>o.i!=k).sort((a,b)=>a.a-b.a).map(o=>[o.p.u,`rgba(${tc(o.p)},${o.a.toFixed(2)})`,.14]).concat([[q.u,`rgba(${tc(q)},1)`,.25]]);
+ const tc=p=>lc(L.b-p.w);SC=P.map((p,i)=>({p,i,a:.22+.6*Math.exp(-(((p.y-q.y)/L.dy)**2+((p.x-q.x)/40)**2)/2)})).filter(o=>o.i!=k).sort((a,b)=>a.a-b.a).map(o=>[o.p.u,`rgba(${tc(o.p)},${o.a.toFixed(2)})`,.14]).concat([[q.u,`rgba(${tc(q)},1)`,.25]]);
  const g=$('#scRing');if(g){g.setAttribute('cx',q.x);g.setAttribute('cy',q.y)}$('#barf').style.height=(L.wh?q.w:100-q.w)+'%';
- $('#rvCoach').innerHTML=`<span class="lbl">${top?'Best move':q.p?'Played move (outside the top 10)':`Option ${q.r+1} of ${L.n}`}${q.u.slice(0,4)==RV.N[j].u.slice(0,4)?' · the move played':''}</span><div class="grade" style="font-size:22px">${san(RV.F[j],q.u)}<small>${q.w.toFixed(0)}% for ${L.mm?'you':'them'}</small></div><div class="why">${top?'Let go to keep it on the board. Tap the board to return to the game.':'Slide to compare. Slide above the card to settle on the best move.'}</div>`;draw()}
+ $('#rvCoach').innerHTML=`<span class="lbl">${top?'Best move':`Option ${q.r+1} of ${L.n}`}${q.p?' · the move played':''}${L.b-q.w>=.5?` · ${(L.b-q.w).toFixed(0)}% worse than best`:''}</span><div class="grade" style="font-size:22px">${san(RV.F[j],q.u)}<small>${q.w.toFixed(0)}% for ${L.mm?'you':'them'}</small></div><div class="why">${top?'Let go to keep it on the board. Tap the board to return to the game.':'Slide to compare. Slide above the card to settle on the best move.'}</div>`;draw()}
 {const D=$('#duel');D.addEventListener('pointerdown',e=>scrub(e,'down'));D.addEventListener('pointermove',e=>SG&&scrub(e,'move'));['pointerup','pointercancel'].forEach(t=>D.addEventListener(t,e=>scrub(e,'up')))}
 const mvn=j=>`${(j>>1)+1}${RV.S[j].color=='w'?'.':'...'}\u00a0${RV.S[j].san}`;
 function rvGo(k,soft){if(soft&&(LN||SC))return;if(!soft)LN=SC=null;const{S,F,E,N,K,g}=RV;k=Math.max(0,Math.min(S.length,k));if(!soft||k!=RV.k||!G.history().length&&k){G.reset();for(let j=0;j<k;j++)G.move(S[j].san)}RV.k=k;
