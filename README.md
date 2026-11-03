@@ -1,4 +1,4 @@
-# Sparring Board
+# InChessting
 
 A chess trainer that runs entirely on your device: paste a game for a full review (graded moves, key moments, top-10 move plots, best lines), spar against a human-like engine or the openings your real opponents play, and drill your own mistakes.
 

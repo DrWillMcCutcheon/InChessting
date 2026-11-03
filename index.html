@@ -2,9 +2,9 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sparring Board</title>
-<meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)">
+<title>InChessting</title>
+<meta name="theme-color" content="#f4f1f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#120d1a" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -12,11 +12,11 @@
 </head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: board + eval bar on the left, coach panel on the right; stacks on phones */
-:root{--bg:#eef1f4;--panel:#fff;--ink:#17202b;--mute:#5b6676;--line:#d6dce4;--acc:#2f5fd0;--sqL:#dfe5ec;--sqD:#7d93ad;
---best:#14897a;--good:#3f9b4a;--inac:#c4970e;--mist:#e07a1f;--blun:#d23c3c;--f:"Chivo",system-ui,sans-serif;--m:"IBM Plex Mono",ui-monospace,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141b;--panel:#18202a;--ink:#e6ebf1;--mute:#93a0b2;--line:#2a3441;--acc:#86a6ff;--sqL:#b9c4d2;--sqD:#5d7290;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0f141b;--panel:#18202a;--ink:#e6ebf1;--mute:#93a0b2;--line:#2a3441;--acc:#86a6ff;--sqL:#b9c4d2;--sqD:#5d7290;color-scheme:dark}
+/* Layout: one column: tabs, controls, board, review card. Palette: greens and purples from the backscattering-in-microrings figures (JSA green #18840c->#78c018, line violet #9c0cc0, magenta #c03c9c, deep purple #482478), each nudged to WCAG AA contrast in both themes */
+:root{--bg:#f4f1f8;--panel:#ffffff;--ink:#1e1530;--mute:#5f5672;--line:#ddd6e8;--acc:#5b2a9e;--sqL:#ece8f2;--sqD:#8a7fa6;
+--best:#18780e;--good:#4a7f10;--inac:#8a6d00;--mist:#a8307f;--blun:#7f19b0;--f:"Chivo",system-ui,sans-serif;--m:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#120d1a;--panel:#1b1426;--ink:#ece6f5;--mute:#a59bb8;--line:#33294a;--acc:#b896ff;--sqL:#c9c2d8;--sqD:#73689a;--best:#5fd35a;--good:#a6d83a;--inac:#e8cc3a;--mist:#ec82cf;--blun:#c58cff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#120d1a;--panel:#1b1426;--ink:#ece6f5;--mute:#a59bb8;--line:#33294a;--acc:#b896ff;--sqL:#c9c2d8;--sqD:#73689a;--best:#5fd35a;--good:#a6d83a;--inac:#e8cc3a;--mist:#ec82cf;--blun:#c58cff;color-scheme:dark}
 body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f);padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .app{display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto}.vw{display:contents}[hidden]{display:none!important}.o0{order:0}.o1{order:1}.o2{order:2}.o3{order:3}
 .tabs{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -29,8 +29,8 @@ body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f);padding-block
 #board{display:grid;grid-template:repeat(8,1fr)/repeat(8,1fr);container-type:size;width:100%;height:100%;border-radius:4px;overflow:hidden;user-select:none}
 .sq{all:unset;position:relative;display:grid;place-items:center;font-size:10cqw;line-height:1;overflow:hidden;cursor:pointer}
 .sq.l{background:var(--sqL)}.sq.d{background:var(--sqD)}
-.sq.lm{box-shadow:inset 0 0 0 100px rgb(255 214 0/.32)}.sq.sel{box-shadow:inset 0 0 0 100px rgb(47 95 208/.42)}.sq.hl{box-shadow:inset 0 0 0 4px #14897a,inset 0 0 0 100px rgb(20 137 122/.3);animation:hp 1.2s ease-in-out infinite alternate}@keyframes hp{to{box-shadow:inset 0 0 0 7px #14897a,inset 0 0 0 100px rgb(20 137 122/.45)}}@media (prefers-reduced-motion:reduce){.sq.hl{animation:none}}
-.sq.chk{background:radial-gradient(circle,#ff4b4b 0,#d23c3c55 60%,transparent 75%)}
+.sq.lm{box-shadow:inset 0 0 0 100px rgb(255 214 0/.32)}.sq.sel{box-shadow:inset 0 0 0 100px rgb(91 42 158/.4)}.sq.hl{box-shadow:inset 0 0 0 4px #1f9a3a,inset 0 0 0 100px rgb(31 154 58/.3);animation:hp 1.2s ease-in-out infinite alternate}@keyframes hp{to{box-shadow:inset 0 0 0 7px #1f9a3a,inset 0 0 0 100px rgb(31 154 58/.45)}}@media (prefers-reduced-motion:reduce){.sq.hl{animation:none}}
+.sq.chk{background:radial-gradient(circle,#e05cc4 0,#c03c9c55 60%,transparent 75%)}
 .sq.t::after{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:rgb(20 30 50/.3)}
 .sq.t.cap::after{width:84%;height:84%;background:none;border:5px solid rgb(20 30 50/.3);box-sizing:border-box}
 .sq:focus-visible{outline:3px solid var(--acc);outline-offset:-3px}
@@ -118,7 +118,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
    <div class="sec coach" id="rvCoach"></div>
    <div class="sec" style="padding-block:10px;gap:8px"><svg id="rvGraph" viewBox="0 0 300 58" preserveAspectRatio="none" aria-label="Who's winning by move, tap to jump"></svg><div class="row"><button class="btn" data-a="rvPeek" id="rvPeek">Before this move</button><button class="btn" data-a="rvLine">Show best line</button></div></div>
    <div class="sec" style="padding-block:10px"><div class="row" id="rvKeys"></div></div>
-   <div class="sec"><span class="lbl">Moves &#183; <span style="color:var(--blun)">red</span> played, <span style="color:var(--best)">green</span> best, <span style="color:var(--acc)">blue</span> punish</span><div class="moves" id="rvMoves"></div></div>
+   <div class="sec"><span class="lbl">Moves &#183; <span style="color:var(--mist)">pink</span> played, <span style="color:var(--best)">green</span> best, <span style="color:var(--blun)">purple</span> punish</span><div class="moves" id="rvMoves"></div></div>
   </div>
  </div>
  <div id="vDrill" class="vw" hidden><div class="panel o3">
@@ -158,8 +158,9 @@ function draw(){const B=peek||G;const b=$('#board'),h=B.history({verbose:true}).
   d.setAttribute('aria-label',sq+(p?' '+p.color+p.type:''));if(p)d.innerHTML=`<span class="p${p.color}">${GL[PI.indexOf(p.type)]}\uFE0E</span>`;
   if(i%8==0)d.innerHTML+=`<span class="c r">${r+1}</span>`;if(i>55)d.innerHTML+=`<span class="c f">${'abcdefgh'[f]}</span>`;d.onclick=()=>tap(sq);b.append(d)}
  const xy=s=>{const f=s.charCodeAt(0)-97,r=+s[1]-1;return[(flip?7-f:f)+.5,(flip?r:7-r)+.5]};
- const A=SC&&peek?SC:LN&&peek?[]:mode=='review'&&!peek?RA:peek?[...(last.played!=last.best?[[last.played,'#d23c3ccc']]:[]),[last.best,'#14897acc']]:[...($('#auto').checked&&last&&mode=='play'?[...(last.played!=last.best?[[last.played,'#d23c3c80']]:[]),[last.best,'#14897a99']]:[]),...(arrow?[[arrow,'#14897acc']]:[]),...(rd.threat&&$('#thr').checked?[[rd.threat,'#d23c3ccc']]:[])];
- $('#arr').innerHTML=A.map(([u,col,sw],i)=>(([a,b],[c,d])=>`<marker id="h${i}" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto"><path d="M0,0L3,1.5L0,3z" fill="${col}"/></marker><line x1="${a}" y1="${b}" x2="${c-(c-a)*1.4*(sw||.18)/Math.hypot(c-a,d-b)}" y2="${d-(d-b)*1.4*(sw||.18)/Math.hypot(c-a,d-b)}" stroke="${col}" stroke-width="${sw||.18}" stroke-linecap="round" marker-end="url(#h${i})"/>`)(xy(u.slice(0,2)),xy(u.slice(2,4)))).join('');
+ const A=SC&&peek?SC:LN&&peek?[]:mode=='review'&&!peek?RA:peek?[...(last.played!=last.best?[[last.played,'#b03ca0cc']]:[]),[last.best,'#1f9a3acc']]:[...($('#auto').checked&&last&&mode=='play'?[...(last.played!=last.best?[[last.played,'#b03ca080']]:[]),[last.best,'#1f9a3a99']]:[]),...(arrow?[[arrow,'#1f9a3acc']]:[]),...(rd.threat&&$('#thr').checked?[[rd.threat,'#b03ca0cc']]:[])];
+ $('#arr').innerHTML=A.map(([u,col,sw],i)=>(([a,b],[c,d])=>{const v=col[0]=='#'?[1,3,5,7].map(k=>parseInt(col.slice(k,k+2)||'ff',16)/255):col.match(/[\d.]+/g).map((x,k)=>k<3?x/255:+x),o=(.2126*v[0]+.7152*v[1]+.0722*v[2]>.42?'rgba(30,21,48,':'rgba(255,255,255,')+(.75*(v[3]??1)).toFixed(2)+')',w=sw||.18;
+ return `<marker id="h${i}" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto" overflow="visible"><path d="M0,0L3,1.5L0,3z" fill="${col}" stroke="${o}" stroke-width=".35" stroke-linejoin="round" paint-order="stroke"/></marker><line x1="${a}" y1="${b}" x2="${c-(c-a)*1.4*w/Math.hypot(c-a,d-b)}" y2="${d-(d-b)*1.4*w/Math.hypot(c-a,d-b)}" stroke="${o}" stroke-width="${w+.07}" stroke-linecap="round"/><line x1="${a}" y1="${b}" x2="${c-(c-a)*1.4*(sw||.18)/Math.hypot(c-a,d-b)}" y2="${d-(d-b)*1.4*(sw||.18)/Math.hypot(c-a,d-b)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" marker-end="url(#h${i})"/>`})(xy(u.slice(0,2)),xy(u.slice(2,4)))).join('');
  $('#bar').classList.toggle('fl',flip);$('#peek').textContent=peek?'Back to game':'Best move?';$('#peek').disabled=!last;$('#hint').textContent=$('#dhint').textContent=hl&&pre&&pre.fen==G.fen()&&!arrow?'Show move':'Hint'}
 const bar=o=>$('#barf').style.height=W(G.turn()=='w'?o.cp:-o.cp)+'%';
 function tap(sq){if(peek){peek=null;SC=null;if(LN){LN=null;return rvGo(RV.k)}draw();return}if(mode=='review')return;if(busy||G.turn()!=me||G.game_over())return;const p=G.get(sq);
@@ -311,18 +312,19 @@ async function ladder(j){RV.LD=null;const el=$('#dPlot'),id=RV,k=RV.k,n=RV.N[j],
  const band=(hi,lo,c,o)=>hi>0?`<rect x="${Math.min(x(hi),x(Math.max(0,lo)))}" y="0" width="${Math.abs(x(hi)-x(Math.max(0,lo)))}" height="${H}" fill="var(--${c})" opacity="${o}"/>`:'';
  const P=x(pw);$('#barf').style.height=(wh?pw:100-pw)+'%';
  el.innerHTML=`<rect x="0" y="0" width="${P}" height="${H}" ${cw(me)}/><rect x="${P}" y="0" width="${Wd-P}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${P}" x2="${P}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".35"/>`+band(b,b-10,'good',.2)+band(b-10,b-20,'inac',.18)+band(b-20,b-30,'mist',.18)+band(b-30,0,'blun',.1)+`<line x1="${x(50)}" x2="${x(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${x(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`
-  +`<polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>`<circle cx="${x(t.w)}" cy="${y(i)}" r="${i?2.3:3.3}" fill="var(--${i?'mute':'best'})"></circle>`).join('')
+  +`<polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>`<circle cx="${x(t.w)}" cy="${y(i)}" r="${i?2.4:3.3}" fill="rgb(${rk(i/Math.max(1,T.length-1))})"></circle>`).join('')
   +`<circle cx="${x(pw)}" cy="${iT>=0?y(iT):H-5.5}" r="4.6" fill="var(--${CV[n.cls]})" stroke="var(--ink)" stroke-width="1.3"></circle><circle id="scRing" class="ring" r="6.5" cx="-20" cy="-20"/>`;
  RV.LD={pts:[...T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i})),...(iT<0?[{u:n.u,w:pw,x:x(pw),y:H-5.5,p:1}]:[])],dy:(H-10)/9,wh,mm,n:T.length}}
 // hold and slide on the card: every candidate gets an arrow (brightness falls off with distance from the finger), the nearest is green;
 // finger travel is halved for fine control, and sliding above the card settles on the best move, which stays after release
 let SC=null,SG=null;
+const RK=['#7cc21e','#1f9a3a','#b03ca0','#6a2ab0','#3b1466'],hx=c=>[1,3,5].map(k=>parseInt(c.slice(k,k+2),16)),rk=t=>{t=Math.max(0,Math.min(1,t))*(RK.length-1);const i=Math.min(RK.length-2,t|0),f=t-i,a=hx(RK[i]),b=hx(RK[i+1]);return a.map((v,k)=>Math.round(v+(b[k]-v)*f)).join()};
 function scrub(e,ph){const D=$('#duel'),L=RV&&RV.LD,j=RV?RV.k-1:-1;if(!L||mode!='review'||j<0)return;const r=D.getBoundingClientRect();
  if(ph=='down'){try{D.setPointerCapture(e.pointerId)}catch{}SG={x0:e.clientX-r.left,y0:e.clientY-r.top,cx:e.clientX,cy:e.clientY};LN=null;peek=new Chess(RV.F[j]);sel=hl=null}
  if(!SG)return;if(ph=='up'){SG=null;return}
  const vx=SG.x0+(e.clientX-SG.cx)*.5,vy=SG.y0+(e.clientY-SG.cy)*.5,top=e.clientY<r.top,P=L.pts,
   k=top?0:P.reduce((b,p,i)=>{const d=Math.hypot((p.x-vx)/2,p.y-vy);return d<b[1]?[i,d]:b},[0,1e9])[0],q=P[k];
- SC=P.map((p,i)=>({u:p.u,i,a:.14+.56*Math.exp(-(((p.y-q.y)/L.dy)**2+((p.x-q.x)/40)**2)/2)})).filter(o=>o.i!=k).sort((a,b)=>a.a-b.a).map(o=>[o.u,`rgba(47,95,208,${o.a.toFixed(2)})`,.13]).concat([[q.u,'rgba(20,137,122,.95)',.22]]);
+ const tc=p=>rk(p.p?1:p.r/Math.max(1,L.n-1));SC=P.map((p,i)=>({p,i,a:.22+.6*Math.exp(-(((p.y-q.y)/L.dy)**2+((p.x-q.x)/40)**2)/2)})).filter(o=>o.i!=k).sort((a,b)=>a.a-b.a).map(o=>[o.p.u,`rgba(${tc(o.p)},${o.a.toFixed(2)})`,.14]).concat([[q.u,`rgba(${tc(q)},1)`,.25]]);
  const g=$('#scRing');if(g){g.setAttribute('cx',q.x);g.setAttribute('cy',q.y)}$('#barf').style.height=(L.wh?q.w:100-q.w)+'%';
  $('#rvCoach').innerHTML=`<span class="lbl">${top?'Best move':q.p?'Played move (outside the top 10)':`Option ${q.r+1} of ${L.n}`}${q.u.slice(0,4)==RV.N[j].u.slice(0,4)?' · the move played':''}</span><div class="grade" style="font-size:22px">${san(RV.F[j],q.u)}<small>${q.w.toFixed(0)}% for ${L.mm?'you':'them'}</small></div><div class="why">${top?'Let go to keep it on the board. Tap the board to return to the game.':'Slide to compare. Slide above the card to settle on the best move.'}</div>`;draw()}
 {const D=$('#duel');D.addEventListener('pointerdown',e=>scrub(e,'down'));D.addEventListener('pointermove',e=>SG&&scrub(e,'move'));['pointerup','pointercancel'].forEach(t=>D.addEventListener(t,e=>scrub(e,'up')))}
@@ -330,7 +332,7 @@ const mvn=j=>`${(j>>1)+1}${RV.S[j].color=='w'?'.':'...'}\u00a0${RV.S[j].san}`;
 function rvGo(k,soft){if(soft&&(LN||SC))return;if(!soft)LN=SC=null;const{S,F,E,N,K,g}=RV;k=Math.max(0,Math.min(S.length,k));if(!soft||k!=RV.k||!G.history().length&&k){G.reset();for(let j=0;j<k;j++)G.move(S[j].san)}RV.k=k;
  if(!soft)peek=null;sel=hl=null;rd={};arrow=null;$('#rvPeek').textContent=peek?'Back':'Before this move';const j=k-1,n=N[j],e=E[k],tm=F[k].split(' ')[1],mine=n&&n.col==me;
  last=n?{fen0:F[j],best:BU(j),played:n.u}:null;
- RA=[];if(n){if(!n.bt)RA.push([n.u,'#d23c3cb3']);if(BU(j))RA.push([BU(j),'#14897acc']);if(!mine&&n.loss>=20&&e&&e.best&&e.best!='(none)')RA.push([e.best,'#2f5fd0cc'])}
+ RA=[];if(n){if(!n.bt)RA.push([n.u,'#b03ca0b3']);if(BU(j))RA.push([BU(j),'#1f9a3acc']);if(!mine&&n.loss>=20&&e&&e.best&&e.best!='(none)')RA.push([e.best,'#6a2ab0cc'])}
  const done=E.length>=F.length,nx=N[k],tail=nx&&nx.crit&&nx.col==me?'<div class="why"><b>Critical moment next.</b> Only one move keeps your advantage here. Try to find it before pressing Next.</div>':'',nT=Object.keys(RV.T).length,prog=done?nT<S.length?`<div class="why">Preparing top-10 plots: ${nT} of ${S.length}</div>`:'':`<div class="why">Analysing ${E.length} of ${F.length} positions...</div>`;
  const R={W:'You won',L:'You lost',D:'Draw'}[g.r],ac=c=>{const x=N.filter(n=>n&&n.col==c);return x.length?(x.reduce((a,n)=>a+n.acc,0)/x.length).toFixed(0):'-'},cn=k=>N.filter(n=>n&&n.col==me&&n.cls==k).length,op=me=='w'?'b':'w';
  $('#rvHead').textContent=`vs ${g.opp}${g.e?` (${g.e})`:''} \u00b7 ${g.d}`;$('#rvRes').innerHTML=`${R}<small>as ${me=='w'?'White':'Black'}</small>`;
@@ -339,7 +341,7 @@ function rvGo(k,soft){if(soft&&(LN||SC))return;if(!soft)LN=SC=null;const{S,F,E,N
  else if(!n)h=`<span class="lbl">${mine?'You':'Opponent'} \u00b7 ${mvn(j)}</span><div class="why">Checking this move...</div>`;
  else{const bs=san(F[j],BU(j)),rep=e&&e.best&&e.best!='(none)'?san(F[k],e.best):null,r=N[k];let w;
   if(mine)w=n.loss>=10?`Better was <b>${bs}</b> (green arrow).${rep?` Your move allows <b>${rep}</b>.`:''} You gave up ${n.loss.toFixed(0)}% winning chances.`+(n.crit?' This was a critical moment with one clearly best move.':''):n.bt?(n.crit?'Critical moment and you found the only good move.':'The engine\u2019s top choice.'):`Fine. The engine slightly preferred <b>${bs}</b>.`;
-  else w=n.loss>=20?`Their ${n.cls.toLowerCase()}. The punishing move is <b>${rep}</b> (blue arrow).${r?r.bt||r.loss<10?' You found it.':` You played ${S[k].san} instead.`:''}`:n.loss>=10?`Slightly inaccurate. Better was <b>${bs}</b>.`:'A solid move.';
+  else w=n.loss>=20?`Their ${n.cls.toLowerCase()}. The punishing move is <b>${rep}</b> (purple arrow).${r?r.bt||r.loss<10?' You found it.':` You played ${S[k].san} instead.`:''}`:n.loss>=10?`Slightly inaccurate. Better was <b>${bs}</b>.`:'A solid move.';
   if(G.in_checkmate())w+=' Checkmate.';h=`<div class="why">${w}</div>`}
  duel(j);$('#rvCoach').innerHTML=h+tail+prog;if(e)bar(e);ladder(j);draw();
  $('#rvKeys').innerHTML=K.map(([q,t,c])=>`<button class="km${q==j?' on':''}" style="--c:var(--${c})" data-a="rvTo" data-k="${q+1}">${mvn(q)} \u00b7 ${t}</button>`).join('')||`<span class="why">${done?'No big swings. A clean game.':'Waiting for analysis...'}</span>`;
@@ -358,5 +360,7 @@ $('#undo').onclick=()=>{if(busy||mode!='play')return;do{G.undo();notes.pop()}whi
 $('#reveal').onclick=()=>{if(busy||!pre||mode!='drill')return;if(shown)return line();arrow=pre.best;firstTry=false;solved();draw()};$('#skip').onclick=()=>{if(D)D.seen=Date.now();drill()};
 const g0=ls.get('ct.game',null);if(g0){$('#skill').value=g0.skill;if(!$('#skill').value)$('#skill').value='h1000';G.load_pgn(g0.pgn);me=g0.me;notes=g0.notes;flip=me=='b';list();draw();say('#coach','<span class="lbl">Coach</span><div class="why">Welcome back. Your game is where you left it.</div>');turn()}else newGame();$('#myUser').value=ls.get('ct.user','willcotch');fixUser($('#myUser').value);buildOpp();dcount();dlist();tab('mine');
 </script>
-<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>{const sw=navigator.serviceWorker,had=!!sw.controller;let done=0;
+ sw.addEventListener('controllerchange',()=>{if(had&&!done){done=1;location.reload()}});
+ sw.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>document.visibilityState=='visible'&&r.update())}).catch(()=>{})})</script>
 </body></html>
