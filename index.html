@@ -83,6 +83,10 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 .btn[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--panel)}
 .btn.nb{background:linear-gradient(100deg,rgb(130,204,144) 0 50%,rgb(35,160,58) 50%);border-color:rgb(35,160,58);color:#0d1f10;font-weight:700}.btn.nb:active{filter:brightness(1.1)}
 .vline{font:14px/1.7 var(--m);color:var(--ink)}.vm{color:var(--acc);cursor:pointer;border-radius:4px;padding:0 2px}.vm.on{background:var(--acc);color:var(--panel)}
+.eh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.es{font:11px var(--m);color:var(--mute)}
+.wdl{display:flex;height:16px;border-radius:8px;overflow:hidden;font:600 10px/16px var(--m);border:1px solid var(--line)}.wdl i{font-style:normal;text-align:center;white-space:nowrap;overflow:hidden;transition:flex-grow .4s}.wdl .ww{background:#f4f1f8;color:#1e1530}.wdl .wd{background:#8a8199;color:#fff}.wdl .wb{background:#1e1530;color:#f4f1f8}
+.ev2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ev2 figure{margin:0;min-width:0}.ev2 canvas{display:block;width:100%;aspect-ratio:1;border-radius:6px;background:#000}.ev2 figcaption,#spd .cap{font:italic 12px var(--f);color:var(--mute);text-align:center;margin-top:4px}
+#spd{display:block;width:100%;max-width:360px;margin:0 auto}#spd text{font:10.5px var(--f);fill:var(--mute)}#spd .ctr{font:600 13px var(--m);fill:#f4f1f8}#engPV b{font-family:var(--m)}
 .km{font:600 12px var(--f);padding:5px 10px;border-radius:99px;border:1px solid var(--c);color:var(--c);background:none;cursor:pointer}.km.on{background:var(--c);color:var(--panel)}
 .gl{display:flex;flex-direction:column;gap:4px;max-height:360px;overflow:auto}.gl button{all:unset;display:grid;grid-template-columns:2em 1fr auto;gap:10px;align-items:center;padding:8px;border-radius:6px;cursor:pointer;font-size:14px}.gl button:hover,.gl button:focus-visible{background:var(--bg)}
 .gl small{display:block;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gl span{min-width:0}.gl em{font:600 11px var(--f);font-style:normal;color:var(--acc);text-transform:uppercase;letter-spacing:.06em}
@@ -127,6 +131,11 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
    <div class="sec" style="padding-block:10px"><div class="row" id="rvKeys"></div></div>
    <div class="sec"><span class="lbl">Moves &#183; arrows coloured by quality: <span style="color:var(--best)">green best</span> to <span style="color:var(--blun)">purple worst</span>, grey = punish their mistake</span><div class="moves" id="rvMoves"></div></div>
    <div class="sec" style="padding-block:10px"><div class="row"><button class="btn p" data-a="drillGo" id="drBtn">Drill this game</button><span class="why" id="drMsg"></span></div></div>
+   <div class="sec" id="eng"><div class="eh"><span class="lbl">Engine view</span><span class="es" id="engS">starting...</span></div>
+    <div class="wdl" id="engW"></div>
+    <div class="ev2"><figure><canvas id="hmW"></canvas><figcaption>White's control</figcaption></figure><figure><canvas id="hmB"></canvas><figcaption>Black's control</figcaption></figure></div>
+    <svg id="spd" viewBox="-150 -122 300 244" aria-label="Evaluation terms, White against Black"></svg>
+    <div class="why" id="engPV"></div></div>
   </div>
  </div>
  <div id="vDrill" class="vw" hidden><div class="panel o3">
@@ -148,7 +157,11 @@ const SEED=[["6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1","Back-rank weakness"],["r3k3
 let drills=ls.get('ct.drills',null)??SEED.map(([fen,note],i)=>({id:'ex'+i,fen,note,ex:1,streak:0}));
 
 // --- engine: one Stockfish worker, requests serialised through a promise chain
-const sf=new Worker('stockfish.js'),C=new Map;let q=Promise.resolve();sf.postMessage('uci');
+const SFW=['sf19.js','sf19-asm.js','stockfish.js'];
+function boot(i=0){return new Promise(res=>{const next=()=>res(i+1<SFW.length?boot(i+1):null);let w;try{w=new Worker(SFW[i])}catch{return next()}
+ const to=setTimeout(()=>{w.terminate();next()},i?20000:9000);w.onerror=()=>{clearTimeout(to);w.terminate();next()};
+ w.onmessage=({data})=>{if(String(data).startsWith('uciok')){clearTimeout(to);w.onerror=null;w.onmessage=null;w.sfName=SFW[i];['setoption name UCI_ShowWDL value true','setoption name Hash value 32'].forEach(c=>w.postMessage(c));res(w)}};w.postMessage('uci')})}
+let sf;const C=new Map;let q=boot().then(w=>{sf=w});
 const ev=(fen,skill=20,lim='depth 12 movetime 900',mpv=skill<20?1:2,k=fen+skill+lim+mpv)=>C.get(k)||(C.set(k,q=q.then(()=>new Promise(res=>{const L=[];sf.onmessage=({data:l})=>{const m=l.match(/score (cp|mate) (-?\d+)/),p=l.match(/ pv (.+?)(?: bmc|$)/);
  if(m&&!/bound/.test(l))L[(l.match(/multipv (\d+)/)?.[1]||1)-1]={cp:m[1]=='cp'?+m[2]:(m[2]>0?1:-1)*(1e4-Math.abs(m[2])*10),mate:m[1]=='mate'?+m[2]:null,best:p?.[1].split(' ')[0],pv:p?.[1].split(' ')};
  if(l.startsWith('bestmove')){const bm=l.split(' ')[1];res({cp:0,mate:null,...L[0],best:L[0]?.best??bm,bm,lines:L})}};
@@ -327,7 +340,7 @@ function gplot(el,T,gs,reveal,f,pw){const Wd=el.clientWidth||300,H=el.clientHeig
  el.innerHTML=sp+`<line x1="${x(50)}" x2="${x(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${x(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`+(reveal?`<polyline points="${all.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`:'')
   +all.map((t,i)=>reveal||isG(t.u)?pdot(t,b,x(t.w),y(i),isG(t.u)?4.4:i?2.6:3.4,isG(t.u)?' stroke="var(--ink)" stroke-width="1.2"':'')+(isG(t.u)?`<text x="${x(t.w)+(x(t.w)>Wd-60?-8:8)}" y="${y(i)+3}" text-anchor="${x(t.w)>Wd-60?'end':'start'}" class="sg sp">${san(f,t.u)}</text>`:''):'').join('')}
 // the held-back position: no evaluation, only your guesses
-function dspot(U){const D=RV.DR,f=RV.F[U],gs=D.val[U]||{},T=RV.T[U],i=D.spots.indexOf(U),e0=RV.E[U],pw=e0?W(e0.cp):50;$('#barf').style.height=(me=='w'?pw:100-pw)+'%';
+function dspot(U){ep(null);const D=RV.DR,f=RV.F[U],gs=D.val[U]||{},T=RV.T[U],i=D.spots.indexOf(U),e0=RV.E[U],pw=e0?W(e0.cp):50;$('#barf').style.height=(me=='w'?pw:100-pw)+'%';
  const me_=RV.S[U],lab=`${(U>>1)+1}${me_.color=='w'?'.':'...'}`;$('#dLab').hidden=true;
  $('#tlL').className=`tl c-${me} on`;$('#tlR').className=`tl c-${me=='w'?'b':'w'}`;
  const b=T&&T.length?Math.max(...T.map(t=>t.w)):0;RA=Object.entries(gs).map(([u,w])=>[u,`rgba(${lc(b-w)},.8)`]);
@@ -442,7 +455,64 @@ function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=nul
  const ply=q=>V.base+q,line=V.mv.map((m,q)=>{const p=ply(q),lab=p%2==0?`${(p>>1)+1}.`:q==0?`${(p>>1)+1}...`:'';return`${lab}${lab?'\u00a0':''}<span class="vm${q==V.i-1?' on':''}" data-a="vTo" data-k="${q+1}">${m.san}</span>`}).join(' ');
  const qv=cur&&cur.q?`<b>${cur.san}</b> ${cur.q.r==0?'is the best move':cur.q.r>0?`is option ${cur.q.r+1} of ${cur.q.n}`:'is outside the top 10'}${cur.q.loss>=.5?`, ${cur.q.loss.toFixed(0)}% worse than best`:''}.`:cur?`Checking <b>${cur.san}</b>...`:'Play any move on the board to explore from here.';
  $('#rvCoach').innerHTML=`<span class="lbl">Side line from ${V.base?mvn(V.base-1):'the start'}</span><div class="why vline">${line||'&nbsp;'}</div><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`+btns([[VS?'Hide top 10':'Show top 10','vHint'],['Back to game','vBack',1]]);$('#rvCoach [data-a="vHint"]').setAttribute('aria-pressed',VS);
- $('#rvPeek').parentElement.hidden=true;{const nb=$('[data-a="rvStep"][data-k="1"]');nb.innerHTML='Next best &#8250;';nb.classList.add('nb')}rvGraph(V.base+V.i,1e9);draw()}
+ ep(G.fen());$('#rvPeek').parentElement.hidden=true;{const nb=$('[data-a="rvStep"][data-k="1"]');nb.innerHTML='Next best &#8250;';nb.classList.add('nb')}rvGraph(V.base+V.i,1e9);draw()}
+// --- engine view. Second engine thinks deeper in the background: the board position first, then the card's position, then the rest of the game.
+// Deeper results replace the quick top-10 lists, so grades, dots and arrows sharpen while you look. Stockfish 10 supplies the evaluation terms for the spider plot.
+const DD=22,DT={},DQ=[];let DW=null,DJ=null,EPF=null,epT=0;boot().then(w=>{DW=w;if(DW)DW.onmessage=dmsg;deepPump()});
+const cardF=()=>RV&&!RV.VL&&RV.k>0?RV.F[RV.k-1]:null;
+function deepWant(){if(!RV||mode!='review'||RV.DR&&dsp()!=null)return[];const o=[EPF,cardF()];if(RV.E.length>=RV.F.length&&!RV.VL){const n=RV.F.length;for(let d=0;d<n;d++)for(const j of[RV.k+d,RV.k-1-d])if(j>=0&&j<n-1)o.push(RV.F[j])}return o.filter(Boolean)}
+function deepPump(){if(!DW||DJ)return;const sm=DQ.shift();const f=sm?sm.f:deepWant().find(f=>!DT[f]||DT[f].d<DD&&!DT[f].done);if(!f)return;const top=f==EPF||f==cardF();
+ DJ={f,u:sm&&sm.u,L:[],d:0};['setoption name MultiPV value '+(DJ.u?1:10),'position fen '+f,`go depth ${DD} movetime ${top?7000:3500}${DJ.u?' searchmoves '+DJ.u:''}`].forEach(c=>DW.postMessage(c))}
+function deepNav(){if(DJ&&!DJ.u&&!deepWant().slice(0,2).includes(DJ.f))DW.postMessage('stop');deepPump()}
+function dmsg({data}){const l=String(data);if(!DJ)return;
+ if(l.startsWith('info')&&l.includes(' pv ')&&!/bound/.test(l)){const g=k=>{const m=l.match(new RegExp(' '+k+' (-?\\d+)'));return m?+m[1]:null},sc=l.match(/score (cp|mate) (-?\d+)/);if(!sc)return;const mp=g('multipv')||1,pv=l.split(' pv ')[1].split(' '),wd=l.match(/ wdl (\d+) (\d+) (\d+)/);
+  DJ.L[mp-1]={u:pv[0],cp:sc[1]=='cp'?+sc[2]:(sc[2]>0?1:-1)*(1e4-Math.abs(sc[2])*10),mate:sc[1]=='mate'?+sc[2]:null,pv,wdl:wd&&wd.slice(1).map(Number)};Object.assign(DJ,{d:g('depth'),sd:g('seldepth'),nodes:g('nodes'),nps:g('nps')});
+  if(DJ.f==EPF&&mp==1&&Date.now()-epT>400){epT=Date.now();epInfo()}}
+ else if(l.startsWith('bestmove')){const J=DJ;DJ=null;deepDone(J);deepPump()}}
+function deepDone(J){const L=J.L.filter(Boolean);if(!L.length||J.d<8)return;const tl_=L.map(x=>({u:x.u,w:+W(x.cp).toFixed(1),...(x.mate>0?{m:x.mate}:{})}));
+ if(J.u){const D=DT[J.f];if(D&&!D.T.some(t=>same(t.u,J.u)))D.T.push(tl_[0]);applyDeep(J.f);return}
+ DT[J.f]={T:tl_,d:J.d,sd:J.sd,wdl:L[0].wdl,cp:L[0].cp,mate:L[0].mate,pv:L[0].pv,nodes:J.nodes,nps:J.nps,done:1};applyDeep(J.f);if(J.f==EPF)epInfo()}
+function applyDeep(f){if(!RV)return;const D=DT[f],j=RV.F.indexOf(f);if(j>=0&&j<RV.S.length){RV.TD=RV.TD||(RV.g.tpd=RV.g.tpd||{});if((RV.TD[j]||0)<=D.d){RV.T[j]=D.T.slice();RV.TD[j]=D.d;
+  const m=RV.S[j],u=m.from+m.to+(m.promotion||'');if(!D.T.some(t=>same(t.u,u))&&!DQ.some(x=>x.f==f))DQ.push({f,u});ls.set('ct.my',MY);rvCalc()}}
+ if(VT[f]!==undefined||RV.VL&&vfen()==f)VT[f]=D.T.slice();
+ if(mode!='review'||SC||SG||LN||peek)return;if(RV.VL){if(vfen()==f||j>=0)vGo(RV.VL.i,1)}else rvGo(RV.k,1)}
+// square control: how many of each side's pieces attack each square (pins and legality ignored), shown like a joint spectral amplitude
+function ctrl(fen){const c=new Chess(fen),B=c.board(),A={w:Array(64).fill(0),b:Array(64).fill(0)},add=(s,f,r)=>{if(f>=0&&f<8&&r>=0&&r<8)A[s][r*8+f]++};
+ B.forEach((row,r)=>row.forEach((p,f)=>{if(!p)return;const s=p.color,ray=(a,b)=>{let F=f+a,R=r+b;while(F>=0&&F<8&&R>=0&&R<8){add(s,F,R);if(B[R][F])break;F+=a;R+=b}};
+  if(p.type=='p'){const d=s=='w'?-1:1;add(s,f-1,r+d);add(s,f+1,r+d)}else if(p.type=='n')[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,b])=>add(s,f+a,r+b));
+  else if(p.type=='k')[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]].forEach(([a,b])=>add(s,f+a,r+b));
+  else{if(p.type!='b')[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>ray(a,b));if(p.type!='r')[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,b])=>ray(a,b))}}));return A}
+// the paper's colour maps: JSA black -> green -> yellow, JTA black -> purple -> pink
+const JSA=[[0,'#000000'],[.28,'#00480c'],[.52,'#18840c'],[.76,'#78c018'],[1,'#f0f030']],JTA=[[0,'#000000'],[.3,'#482478'],[.55,'#9c0cc0'],[.8,'#c03c9c'],[1,'#f4d0ec']],
+ cmap=(S,t)=>{t=Math.max(0,Math.min(1,t));let i=0;while(i<S.length-2&&t>S[i+1][0])i++;const[a,ca]=S[i],[b,cb]=S[i+1],f=(t-a)/(b-a),x=hx(ca),y=hx(cb);return x.map((v,k)=>Math.round(v+(y[k]-v)*f))};
+function heat(cv,v,S,vm){const W_=cv.clientWidth||150,dp=devicePixelRatio||1;cv.width=W_*dp;cv.height=W_*dp;const x=cv.getContext('2d'),sm=document.createElement('canvas');sm.width=sm.height=8;
+ const sx=sm.getContext('2d'),im=sx.createImageData(8,8);for(let r=0;r<8;r++)for(let f=0;f<8;f++){const i=(flip?(7-r)*8+(7-f):r*8+f),c=cmap(S,Math.sqrt(v[i]/vm)),o=(r*8+f)*4;im.data.set([...c,255],o)}sx.putImageData(im,0,0);
+ x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';const p=W_*dp/16;x.drawImage(sm,-p,-p,W_*dp+2*p,W_*dp+2*p);x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=dp;
+ for(let k=1;k<8;k++){const z=k*W_*dp/8;x.beginPath();x.moveTo(z,0);x.lineTo(z,W_*dp);x.moveTo(0,z);x.lineTo(W_*dp,z);x.stroke()}
+ x.fillStyle='rgba(255,255,255,.5)';x.font=`${9*dp}px ui-monospace,monospace`;for(let k=0;k<8;k++){x.fillText((flip?'hgfedcba':'abcdefgh')[k],(k+.4)*W_*dp/8,W_*dp-3*dp);x.fillText(flip?k+1:8-k,2*dp,(k+.55)*W_*dp/8)}}
+// Stockfish 10's classical evaluation, broken into terms per side (the new engine's network gives one number only)
+let CEW=null,CEq=Promise.resolve();const CEC={};
+function ceval(fen){if(CEC[fen])return Promise.resolve(CEC[fen]);if(!CEW){CEW=new Worker('stockfish.js');CEW.postMessage('uci')}
+ return CEq=CEq.then(()=>new Promise(res=>{const t={},to=setTimeout(()=>res(CEC[fen]=t),4000);CEW.onmessage=({data})=>{const l=String(data),m=l.match(/^\s*([A-Za-z ]+?)\s*\|\s*(\S+)\s+(\S+)\s*\|\s*(\S+)\s+(\S+)\s*\|\s*(\S+)\s+(\S+)/);
+  if(m&&m[1]!='Term')t[m[1]]=m.slice(2).map(v=>v=='----'?null:+v);if(l.startsWith('Total evaluation')){clearTimeout(to);t.total=l;res(CEC[fen]=t)}};CEW.postMessage('position fen '+fen);CEW.postMessage('eval')}))}
+function spider(t,fen){const c=new Chess(fen),V={p:1,n:3,b:3,r:5,q:9},mat={w:0,b:0},np={w:0,b:0};c.board().flat().forEach(p=>{if(p&&p.type!='k'){mat[p.color]+=V[p.type];if(p.type!='p')np[p.color]+=V[p.type]}});
+ const ph=Math.min(1,(np.w+np.b)/62),bl=a=>a?[(a[0]??0)*ph+(a[1]??0)*(1-ph),(a[2]??0)*ph+(a[3]??0)*(1-ph)]:[0,0],sum=(...k)=>k.map(n=>bl(t[n])).reduce((a,b)=>[a[0]+b[0],a[1]+b[1]],[0,0]);
+ const AX=[['Material',[mat.w,mat.b],2],['Pawns',bl(t.Pawns),.4],['Pieces',sum('Knights','Bishops','Rooks','Queens'),.5],['Mobility',bl(t.Mobility),.5],['King safety',bl(t['King safety']),.5],['Threats',bl(t.Threats),.4],['Space',bl(t.Space),.3],['Passed pawns',bl(t.Passed),.4]];
+ const R=84,n=AX.length,P=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return[r*R*Math.cos(a),r*R*Math.sin(a)]},rr=(v,m,F)=>.5+.42*Math.tanh((v-m)/F),
+  pts=s=>AX.map(([,v,F],i)=>P(i,rr(v[s],(v[0]+v[1])/2,F)).map(z=>z.toFixed(1)).join(',')).join(' '),tot=(t.total||'').match(/-?\d+\.\d+/);
+ $('#spd').innerHTML=`<defs><radialGradient id="gW">${JSA.map(([o,c])=>`<stop offset="${o}" stop-color="${c}"/>`).join('')}</radialGradient><radialGradient id="gB">${JTA.map(([o,c])=>`<stop offset="${o}" stop-color="${c}"/>`).join('')}</radialGradient></defs>`
+  +`<circle r="${R+6}" fill="#000"/>`+[.25,.5,.75,1].map(k=>`<polygon points="${AX.map((_,i)=>P(i,k).join(',')).join(' ')}" fill="none" stroke="rgba(255,255,255,${k==.5?.22:.09})"/>`).join('')+AX.map((_,i)=>`<line x1="0" y1="0" x2="${P(i,1)[0]}" y2="${P(i,1)[1]}" stroke="rgba(255,255,255,.08)"/>`).join('')
+  +`<polygon points="${pts(1)}" fill="url(#gB)" fill-opacity=".7" stroke="#c03c9c" stroke-width="1.5"/><polygon points="${pts(0)}" fill="url(#gW)" fill-opacity=".55" stroke="#b4d824" stroke-width="1.5"/>`
+  +AX.map(([l],i)=>{const[x,y]=P(i,1.2);return`<text x="${x}" y="${y+3}" text-anchor="${Math.abs(x)<8?'middle':x>0?'start':'end'}">${l}</text>`}).join('')
+  +`<text x="-146" y="118" class="cap" style="fill:#b4d824">White</text><text x="146" y="118" text-anchor="end" style="fill:#e07ad0">Black</text><text y="118" text-anchor="middle">further out = ahead on that term</text>`}
+function epInfo(){if(!EPF)return;const D=DJ&&DJ.f==EPF&&DJ.L[0]?{...DJ,...DJ.L[0],run:1}:DT[EPF],stm=EPF.split(' ')[1];
+ if(!D){$('#engS').textContent=DW?'thinking...':'starting...';return}const k=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':v;
+ $('#engS').textContent=`${(DW&&DW.sfName||'').includes('19')?'Stockfish 19':'Stockfish'} \u00b7 depth ${D.d}${D.sd?`/${D.sd}`:''} \u00b7 ${k(D.nodes||0)} positions${D.nps?` \u00b7 ${k(D.nps)}/s`:''}${D.run?' \u00b7 thinking deeper':''}`;
+ if(D.wdl){const[w,d,l]=stm=='w'?D.wdl:[D.wdl[2],D.wdl[1],D.wdl[0]],pc=v=>(v/10).toFixed(0)+'%';$('#engW').innerHTML=`<i class="ww" style="flex-grow:${w}">${w>90?'White '+pc(w):''}</i><i class="wd" style="flex-grow:${d}">${d>90?'draw '+pc(d):''}</i><i class="wb" style="flex-grow:${l}">${l>90?'Black '+pc(l):''}</i>`}
+ const pv=D.pv||[];if(pv.length){const b=new Chess(EPF),out=[];for(const u of pv.slice(0,8)){const m=b.move(U(u));if(!m)break;out.push(m.san)}const cw_=stm=='w'?D.cp:-D.cp;
+  $('#engPV').innerHTML=`Best line: <b>${out.join(' ')}</b> (${D.mate!=null?`mate in ${Math.abs(D.mate)}`:(cw_>0?'+':'')+(cw_/100).toFixed(2)})`}else $('#engPV').textContent=''}
+function ep(fen){const box=$('#eng');if(!fen){box.hidden=true;EPF=null;return}box.hidden=false;if(fen==EPF){epInfo();return}EPF=fen;$('#engW').innerHTML='';$('#engPV').textContent='';epInfo();
+ const A=ctrl(fen),vm=Math.max(1,...A.w,...A.b);heat($('#hmW'),A.w,JSA,vm);heat($('#hmB'),A.b,JTA,vm);ceval(fen).then(t=>{if(EPF==fen)spider(t,fen)});deepNav()}
 const mvn=j=>`${(j>>1)+1}${RV.S[j].color=='w'?'.':'...'}\u00a0${RV.S[j].san}`;
 function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))return;if(!soft){LN=SC=null;RV.VL=null}const{S,F,E,N,K,g}=RV;k=Math.max(0,Math.min(S.length,k));const U=dsp(),cut=U??1e9,at=U!=null&&k>=U;if(at)k=U;if(!soft||k!=RV.k||!G.history().length&&k){G.reset();for(let j=0;j<k;j++)G.move(S[j].san)}RV.k=k;
  if(!soft)peek=null;sel=hl=null;rd={};arrow=null;$('#rvPeek').textContent=peek?'Back':'Before this move';const j=k-1,n=N[j],e=E[k],tm=F[k].split(' ')[1],mine=n&&n.col==me;
@@ -458,7 +528,7 @@ function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))
   if(mine)w=n.loss>=10?`${mateIn(j)!=null?`Missed mate: <b>${bs}</b>${mateIn(j)?` mates in ${mateIn(j)}`:' mates'} (yellow arrow).`:`Better was <b>${bs}</b> (green arrow).`}${rep?` Your move allows <b>${rep}</b>.`:''} You gave up ${n.loss.toFixed(0)}% winning chances.`+(n.crit?' This was a critical moment with one clearly best move.':''):n.bt?(n.crit?'Critical moment and you found the only good move.':'The engine\u2019s top choice.'):mateIn(j)!=null?`Checkmate was available: <b>${bs}</b>${mateIn(j)?` (mate in ${mateIn(j)})`:''}. Your move still wins.`:`Fine. The engine slightly preferred <b>${bs}</b>.`;
   else w=n.loss>=20?`Their ${n.cls.toLowerCase()}. The punishing move is <b>${rep}</b> (grey arrow).${r?r.bt||r.loss<10?' You found it.':` You played ${S[k].san} instead.`:''}`:mateIn(j)!=null&&!n.bt?`They missed mate: <b>${bs}</b>${mateIn(j)?` (mate in ${mateIn(j)})`:''}.`:n.loss>=10?`Slightly inaccurate. Better was <b>${bs}</b>.`:'A solid move.';
   if(G.in_checkmate())w+=' Checkmate.';h=`<div class="why">${w}</div>`}
- const DM=RV.DR&&RV.DR.msg&&RV.DR.msg.k==k?RV.DR.msg.h:'';duel(j);$('#rvCoach').innerHTML=(DM||h)+tail+prog;if(e)bar(e);if(at)dspot(U);else ladder(j);draw();drUI(U);
+ const DM=RV.DR&&RV.DR.msg&&RV.DR.msg.k==k?RV.DR.msg.h:'';duel(j);$('#rvCoach').innerHTML=(DM||h)+tail+prog;if(e)bar(e);if(at)dspot(U);else ladder(j);draw();drUI(U);if(!soft||!EPF)ep(at?null:G.fen());else epInfo();
  $('#rvKeys').innerHTML=K.filter(([q])=>q<cut).map(([q,t,c])=>`<button class="km${q==j?' on':''}" style="--c:var(--${c})" data-a="rvTo" data-k="${q+1}">${mvn(q)} \u00b7 ${t}</button>`).join('')||`<span class="why">${U!=null?'Key moments appear as you get to them.':done?'No big swings. A clean game.':'Waiting for analysis...'}</span>`;
  rvGraph(k,cut);
  let mv='';for(let i=0;i<S.length;i+=2)mv+=`<span class="n">${i/2+1}.</span>`+[i,i+1].map(q=>S[q]&&q<cut?`<span class="mv${q==j?' on':''}" data-a="rvTo" data-k="${q+1}">${N[q]&&N[q].loss>=10?`<i class="dot" style="background:var(--${CV[N[q].cls]})"></i>`:''}${S[q].san}</span>`:'<span></span>').join('');
