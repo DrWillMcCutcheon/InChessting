@@ -81,6 +81,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 #dPlot .slot,#dPlot2 .slot{fill:none;stroke:var(--mute);stroke-width:1;opacity:.6}#dPlot .sg,#dPlot2 .sg{font:600 10px var(--m);fill:var(--ink)}#dPlot2 .sl{fill:var(--mute);font:9px var(--f)}#dPlot2 .sx{stroke:var(--line)}#dPlot2 .pl{fill:none;stroke:var(--mute);stroke-width:1.2;opacity:.7}
 .gp{display:block;width:100%;height:76px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
 .btn[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--panel)}
+.btn.nb{background:linear-gradient(100deg,rgb(130,204,144) 0 50%,rgb(35,160,58) 50%);border-color:rgb(35,160,58);color:#0d1f10;font-weight:700}.btn.nb:active{filter:brightness(1.1)}
 .vline{font:14px/1.7 var(--m);color:var(--ink)}.vm{color:var(--acc);cursor:pointer;border-radius:4px;padding:0 2px}.vm.on{background:var(--acc);color:var(--panel)}
 .km{font:600 12px var(--f);padding:5px 10px;border-radius:99px;border:1px solid var(--c);color:var(--c);background:none;cursor:pointer}.km.on{background:var(--c);color:var(--panel)}
 .gl{display:flex;flex-direction:column;gap:4px;max-height:360px;overflow:auto}.gl button{all:unset;display:grid;grid-template-columns:2em 1fr auto;gap:10px;align-items:center;padding:8px;border-radius:6px;cursor:pointer;font-size:14px}.gl button:hover,.gl button:focus-visible{background:var(--bg)}
@@ -332,7 +333,7 @@ function dspot(U){const D=RV.DR,f=RV.F[U],gs=D.val[U]||{},T=RV.T[U],i=D.spots.in
  const b=T&&T.length?Math.max(...T.map(t=>t.w)):0;RA=Object.entries(gs).map(([u,w])=>[u,`rgba(${lc(b-w)},.8)`]);
  $('#rvCoach').innerHTML=(`<span class="lbl">Drill ${i+1} of ${D.spots.length} \u00b7 ${lab} your move</span>`+(D.fb&&D.fb.k==U?D.fb.h:`<div class="why">Find the best move and play it on the board.</div>`))+btns([['Hint','dHint'],['Show answer','dShow']]);
  if(T)gplot($('#dPlot'),T,gs,D.hint[U]?1:0,f,pw);else{gplot($('#dPlot'),null,{},0,f,pw);topT(U).then(()=>{if(RV&&RV.k==U&&dsp()==U){dspot(U);draw()}})}}
-function drUI(U){const D=RV.DR,b=$('#drBtn'),m=$('#drMsg'),kb=$('[data-a="rvKey"]');$('#rvPeek').parentElement.hidden=U!=null&&RV.k>=U;kb.textContent=U!=null?'Next drill':'Key moment';
+function drUI(U){const D=RV.DR,b=$('#drBtn'),m=$('#drMsg'),kb=$('[data-a="rvKey"]');{const nb=$('[data-a="rvStep"][data-k="1"]');nb.innerHTML='Next &#8250;';nb.classList.remove('nb')}$('#rvPeek').parentElement.hidden=U!=null&&RV.k>=U;kb.textContent=U!=null?'Next drill':'Key moment';
  if(!D){b.textContent='Drill this game';if(!RV.want)m.textContent='';return}const n=D.spots.length,d=Object.keys(D.done).length;
  b.textContent=D.end?'Drill again':'Stop drilling';m.textContent=D.end?D.sum:`${d} of ${n} found${U!=null&&RV.k<U?' \u00b7 Next stops at your next critical move':''}`}
 function dtap(sq){const U=dsp();if(U==null||RV.k!=U||busy)return;const p=G.get(sq),ms=sel?G.moves({square:sel,verbose:true}).filter(m=>m.to==sq):[];
@@ -409,8 +410,17 @@ function rvGraph(k,cut){const{S,N}=RV,V=RV.VL,L=Math.max(S.length,V?V.base+V.mv.
 // Like a drill stop, its card starts empty (just the evaluation split); Hint fills in the top 10, which press-and-hold then explores.
 let VS=ls.get('ct.vtop',false);const VT={};async function tAt(fen){if(!VT[fen]){const o=await ev(fen,20,TOP,10);VT[fen]=tl(o)}return VT[fen]}
 const vfen=()=>{const V=RV.VL;return V.i?V.mv[V.i-1].fen:RV.F[V.base]};
-function vtap(sq){if(busy||!RV||RV.DR&&dsp()!=null)return;const p=G.get(sq),ms=sel?G.moves({square:sel,verbose:true}).filter(m=>m.to==sq):[];
- if(ms.length){const m=ms.find(m=>!m.promotion||m.promotion=='q')||ms[0];sel=null;return vplay(m.from+m.to+(m.promotion||''))}sel=p&&p.color==G.turn()?sq:null;draw()}
+// moving a piece of the side that just moved takes that move back and plays yours instead (the piece that just moved counts from where it started)
+const prevF=()=>{const V=RV.VL;if(V&&V.i>0)return V.i>1?V.mv[V.i-2].fen:RV.F[V.base];const k=V?V.base:RV.k;return k>0?RV.F[k-1]:null},
+ lastMv=()=>{const V=RV.VL;return V&&V.i>0?U(V.mv[V.i-1].u):(()=>{const k=V?V.base:RV.k,m=k>0&&RV.S[k-1];return m?{from:m.from,to:m.to}:null})()};
+function vtap(sq){if(busy||!RV||RV.DR&&dsp()!=null)return;const p=G.get(sq);
+ if(sel){const own=G.get(sel)&&G.get(sel).color==G.turn(),pf=!own&&prevF(),B=own?G:pf&&new Chess(pf),lm=lastMv(),from=!own&&lm&&sel==lm.to?lm.from:sel,
+  ms=B?B.moves({square:from,verbose:true}).filter(m=>m.to==sq):[];
+  if(ms.length){const m=ms.find(m=>!m.promotion||m.promotion=='q')||ms[0],u=m.from+m.to+(m.promotion||'');sel=null;return own?vplay(u):vback(u)}}
+ sel=p?sq:null;draw()}
+function vback(u){const V=RV.VL;if(V&&V.i>0){vGo(V.i-1);return vplay(u)}const k=V?V.base:RV.k;if(k<1)return;RV.VL=null;rvGo(k-1);vplay(u)}
+// Next best: play the engine's top move from the current side-line position
+async function nextBest(){const V=RV.VL,f=vfen(),T=await tAt(f);if(RV.VL!==V||vfen()!=f||!T.length)return;vplay(T.slice().sort((a,b)=>b.w-a.w)[0].u)}
 function vplay(u){let V=RV.VL;
  if(!V){const g=RV.S[RV.k];if(g&&same(g.from+g.to+(g.promotion||''),u))return rvGo(RV.k+1);V=RV.VL={base:RV.k,mv:[],i:0,hint:{}}}
  else if(V.i<V.mv.length){if(same(V.mv[V.i].u,u))return vGo(V.i+1);V.mv.length=V.i}
@@ -432,7 +442,7 @@ function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=nul
  const ply=q=>V.base+q,line=V.mv.map((m,q)=>{const p=ply(q),lab=p%2==0?`${(p>>1)+1}.`:q==0?`${(p>>1)+1}...`:'';return`${lab}${lab?'\u00a0':''}<span class="vm${q==V.i-1?' on':''}" data-a="vTo" data-k="${q+1}">${m.san}</span>`}).join(' ');
  const qv=cur&&cur.q?`<b>${cur.san}</b> ${cur.q.r==0?'is the best move':cur.q.r>0?`is option ${cur.q.r+1} of ${cur.q.n}`:'is outside the top 10'}${cur.q.loss>=.5?`, ${cur.q.loss.toFixed(0)}% worse than best`:''}.`:cur?`Checking <b>${cur.san}</b>...`:'Play any move on the board to explore from here.';
  $('#rvCoach').innerHTML=`<span class="lbl">Side line from ${V.base?mvn(V.base-1):'the start'}</span><div class="why vline">${line||'&nbsp;'}</div><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`+btns([[VS?'Hide top 10':'Show top 10','vHint'],['Back to game','vBack',1]]);$('#rvCoach [data-a="vHint"]').setAttribute('aria-pressed',VS);
- $('#rvPeek').parentElement.hidden=true;rvGraph(V.base+V.i,1e9);draw()}
+ $('#rvPeek').parentElement.hidden=true;{const nb=$('[data-a="rvStep"][data-k="1"]');nb.innerHTML='Next best &#8250;';nb.classList.add('nb')}rvGraph(V.base+V.i,1e9);draw()}
 const mvn=j=>`${(j>>1)+1}${RV.S[j].color=='w'?'.':'...'}\u00a0${RV.S[j].san}`;
 function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))return;if(!soft){LN=SC=null;RV.VL=null}const{S,F,E,N,K,g}=RV;k=Math.max(0,Math.min(S.length,k));const U=dsp(),cut=U??1e9,at=U!=null&&k>=U;if(at)k=U;if(!soft||k!=RV.k||!G.history().length&&k){G.reset();for(let j=0;j<k;j++)G.move(S[j].san)}RV.k=k;
  if(!soft)peek=null;sel=hl=null;rd={};arrow=null;$('#rvPeek').textContent=peek?'Back':'Before this move';const j=k-1,n=N[j],e=E[k],tm=F[k].split(' ')[1],mine=n&&n.col==me;
@@ -455,7 +465,7 @@ function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))
  const M=$('#rvMoves');M.innerHTML=mv;const on=M.querySelector('.on');if(on)M.scrollTop=on.offsetTop-80}
 $('#rvGraph').onclick=e=>{if(!RV)return;const r=e.currentTarget.getBoundingClientRect();rvGo(Math.round((e.clientX-r.left)/r.width*RV.S.length-.5)+1)};
 document.addEventListener('keydown',e=>{if(mode!='review'||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key=='ArrowRight')ACT.rvStep({k:1});else if(e.key=='ArrowLeft')ACT.rvStep({k:-1});else return;e.preventDefault()});
-const ACT={drillGo:()=>{if(RV.DR&&!RV.DR.end){RV.DR=null;return rvGo(RV.k)}startDrill()},rvDrill:d=>drillGame(+d.i),dHint,dShow,rvLine,rvBackLine:()=>{LN=null;rvGo(RV.k)},rv:d=>review(+d.i),rvBack:()=>tab('mine'),rvTo:d=>rvGo(+d.k),rvStep:d=>{const s_=+d.k,V=RV.VL;if(!V)return rvGo(RV.k+s_);if(s_>0){if(V.i<V.mv.length)vGo(V.i+1)}else if(V.i>0)vGo(V.i-1);else{RV.VL=null;rvGo(V.base)}},vTo:d=>vGo(+d.k),vBack:()=>{const b=RV.VL.base;RV.VL=null;rvGo(b)},vHint:()=>{const V=RV.VL;if(!V)return;VS=!VS;ls.set('ct.vtop',VS);vGo(V.i,1)},
+const ACT={drillGo:()=>{if(RV.DR&&!RV.DR.end){RV.DR=null;return rvGo(RV.k)}startDrill()},rvDrill:d=>drillGame(+d.i),dHint,dShow,rvLine,rvBackLine:()=>{LN=null;rvGo(RV.k)},rv:d=>review(+d.i),rvBack:()=>tab('mine'),rvTo:d=>rvGo(+d.k),rvStep:d=>{const s_=+d.k,V=RV.VL;if(!V)return rvGo(RV.k+s_);if(s_>0){nextBest()}else if(V.i>0)vGo(V.i-1);else{RV.VL=null;rvGo(V.base)}},vTo:d=>vGo(+d.k),vBack:()=>{const b=RV.VL.base;RV.VL=null;rvGo(b)},vHint:()=>{const V=RV.VL;if(!V)return;VS=!VS;ls.set('ct.vtop',VS);vGo(V.i,1)},
  scPlay:()=>{const u=RV.SQ,f=RV.LD&&RV.LD.fen;if(!u||!f)return;SC=null;peek=null;if(RV.VL&&vfen()==f)return vplay(u);const b=RV.F.indexOf(f);if(b<0)return;rvGo(b);vplay(u)},rvKey:()=>{const U=dsp();if(U!=null)return rvGo(U);const q=RV.K.find(([q])=>q+1>RV.k)||RV.K[0];if(q)rvGo(q[0]+1)},rvPeek:()=>{SC=null;if(!last||dsp()!=null&&RV.k>=dsp())return;peek=peek?null:new Chess(last.fen0);$('#rvPeek').textContent=peek?'Back':'Before this move';draw()},spar:()=>{$('#useBook').checked=true;ls.set('ct.book',true);tab('play');newGame()},scan,clr:()=>{MY=null;ls.set('ct.my',null);$('#useBook').disabled=true;$('#useBook').checked=false;$('#bookLbl').textContent='Opponent plays openings from my games (import in My games)';mine()},line,back:()=>{G.load(D.fen);busy=false;arrow=null;draw();bar(pre)},new2:newGame,next:()=>drill(),todr:()=>tab('drill')};
 function tab(t){$('#vReview').hidden=t!='review';if(t=='review'){mode='review';$('.left').hidden=false;['#vPlay','#vDrill','#vMine'].forEach(x=>$(x).hidden=true);['#tPlay','#tDrill'].forEach(x=>$(x).classList.remove('on'));$('#tMine').classList.add('on');return}$('.left').hidden=t=='mine';$('#tMine').classList.toggle('on',t=='mine');$('#vMine').hidden=t!='mine';if(t=='mine'){$('#vPlay').hidden=$('#vDrill').hidden=true;$('#tPlay').classList.remove('on');$('#tDrill').classList.remove('on');return mine()}$('#tPlay').classList.toggle('on',t=='play');$('#tDrill').classList.toggle('on',t=='drill');$('#vPlay').hidden=t!='play';$('#vDrill').hidden=t=='play';
  if(t=='drill'){persist();drill()}else{mode='play';const s=ls.get('ct.game',null);G.reset();if(s){G.load_pgn(s.pgn);me=s.me;notes=s.notes}flip=me=='b';arrow=null;busy=false;list();draw();say('#coach','<span class="lbl">Coach</span><div class="why">Game resumed.</div>');turn()}}
