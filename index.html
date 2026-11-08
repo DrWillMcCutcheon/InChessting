@@ -131,9 +131,9 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
    <div class="sec" style="padding-bottom:10px"><div class="duel" id="duel"><svg id="dPlot" aria-hidden="true"></svg><i class="tl" id="tlL"></i><i class="tl" id="tlR"></i><div id="dLab" hidden></div></div></div>
    <div class="sec rvnav"><div class="row"><button class="btn" id="vxB" data-a="vBack" hidden aria-label="Back to the game line">&#171;</button><button class="btn" data-a="rvStep" data-k="-1" aria-label="Previous move">&#8249; Prev</button><button class="btn big" data-a="rvStep" data-k="1" aria-label="Next move">Next &#8250;</button><button class="btn nb" id="bestB" data-a="best" aria-label="Play the engine's best move">Best</button><button class="btn p nolab" data-a="rvKey">Key moment</button></div></div>
    <div class="sec coach" id="rvCoach"></div>
-   <div class="sec nolab" style="padding-block:10px"><div class="row" id="rvKeys"></div></div>
    
    <details class="sec fold" id="opn" open hidden><summary><span class="lbl">Opening</span><span class="es" id="opnS"></span></summary><div class="fb"><svg id="osb" viewBox="-162 -162 324 324" aria-label="Map of named openings; tap a ring to zoom in, the centre to zoom out"></svg><div id="opnI"></div></div></details>
+   <details class="sec nolab fold" id="fKey" open><summary><span class="lbl">Key moments</span></summary><div class="fb"><div class="row" id="rvKeys" style="flex-wrap:wrap"></div></div></details>
    <details class="sec fold" id="eng" open><summary class="eh"><span class="lbl">Engine view</span><span class="es" id="engS">starting...</span></summary><div class="fb">
     <div class="wdl" id="engW"></div><div class="wdt" id="engT"></div>
     <div class="ev2"><figure><canvas id="hmW"></canvas><figcaption>White's control</figcaption></figure><figure><canvas id="hmB"></canvas><figcaption>Black's control</figcaption></figure></div>
@@ -470,9 +470,8 @@ function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=nul
  if(cur){const f0=V.i>1?V.mv[V.i-2].fen:F[V.base],T=VT[f0],mm=cur.col==me;vplot(T||null,f0,myPw,mm,{u:cur.u,san:cur.san,w:cur.q&&cur.q.w});
   if(T&&T.length){const bu=T.slice().sort((a,c)=>c.w-a.w)[0].u;if(!same(bu,cur.u))RA.push([cur.u,`rgba(${lc(cur.q?cur.q.loss:0)},.85)`]);RA.push([bu,`rgba(${lc(0)},.95)`,0,1])}else tAt(f0).then(()=>{if(RV.VL===V&&V.i==i)vGo(V.i,1)})}
  else vplot([],fen,myPw,tm==me);
- const ply=q=>V.base+q,line=V.mv.map((m,q)=>{const p=ply(q),lab=p%2==0?`${(p>>1)+1}.`:q==0?`${(p>>1)+1}...`:'';return`${lab}${lab?'\u00a0':''}<span class="vm${q==V.i-1?' on':''}" data-a="vTo" data-k="${q+1}">${m.san}</span>`}).join(' ');
  const qv=cur&&cur.q?`<b>${cur.san}</b> ${cur.q.r==0?'is the best move':cur.q.r>0?`is option ${cur.q.r+1} of ${cur.q.n}`:'is outside the top 10'}${cur.q.loss>=.5?`, ${cur.q.loss.toFixed(0)}% worse than best`:''}.`:cur?`Checking <b>${cur.san}</b>...`:'Play any move on the board to explore from here.';
- $('#rvCoach').innerHTML=`<span class="lbl">${RV.g.lab?'Your game \u00b7 play either side to try lines':`Side line from ${V.base?mvn(V.base-1):'the start'}`}</span><div class="why vline">${line||'&nbsp;'}</div><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`+(RV.g.lab?'':btns([['Back to game','vBack',1]]));
+ $('#rvCoach').innerHTML=`<span class="lbl">${RV.g.lab?'Your game \u00b7 play either side to try lines':`Side line from ${V.base?mvn(V.base-1):'the start'}`}</span><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`;
  ep(G.fen());opn();navUI();rvGraph(V.base+V.i,1e9);draw()}
 // --- openings: the Lichess opening names (CC0) as a move tree, drawn as a sunburst: ring n = move n, arc size = named lines below it
 let OT=null,OL=null,OZ=null,OB=null,OP=null;const OA={},ON=[],okey=f=>f.split(' ').slice(0,3).join(' ');
