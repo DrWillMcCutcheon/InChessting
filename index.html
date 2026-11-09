@@ -151,6 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 983e0601d8</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -448,7 +449,8 @@ function rvGraph(k,cut){const{S,N}=RV,V=RV.VL,L=Math.max(S.length,V?V.base+V.mv.
 // Every view (game card, side lines, arrows, grades, Best, drills) reads PT(fen); every search writes through put(). Deeper results replace
 // shallower ones; a shallower result only adds moves that are missing (e.g. a played move outside the top 10, tagged x).
 const PS={},PT=f=>PS[f]?.T,PTs=f=>{const T=PT(f);return T&&T.length?T.slice().sort((a,c)=>c.w-a.w):null};
-function put(f,T,d,H){const o=PS[f];if(!o||d>=o.d)PS[f]={T:T.concat(o?o.T.filter(t=>t.x&&!T.some(z=>same(z.u,t.u))):[]),d,H:H||o?.H};else T.forEach(t=>{if(!o.T.some(z=>same(z.u,t.u)))o.T.push({...t,x:1})});
+function put(f,T,d,H){const o=PS[f],n=h=>h?Object.keys(h).length:0;H=n(H)>=n(o?.H)?H:o?.H; // the depth trail keeps whichever search went through the most depths
+ if(!o||d>=o.d)PS[f]={T:T.concat(o?o.T.filter(t=>t.x&&!T.some(z=>same(z.u,t.u))):[]),d,H};else{o.H=H;T.forEach(t=>{if(!o.T.some(z=>same(z.u,t.u)))o.T.push({...t,x:1})})}
  const j=RV?RV.F.indexOf(f):-1;if(j>=0&&j<RV.S.length){RV.g.tp[j]=PS[f].T;(RV.g.tpd||(RV.g.tpd={}))[j]=PS[f].d;ls.set('ct.my',MY)}return PS[f].T}
 const TQ={};async function tAt(f){if(!PT(f))put(f,tl(await(TQ[f]??=ev(f,20,TOP,10))),10);return PT(f)}
 const vfen=()=>{const V=RV.VL;return V.i?V.mv[V.i-1].fen:RV.F[V.base]};
@@ -518,7 +520,7 @@ $('#osb').onclick=e=>{const i=+e.target.closest('[data-i]')?.dataset.i;if(isNaN(
 const DD=22,DT={},DQ=[];let DW=null,DJ=null,EPF=null,epT=0;boot().then(w=>{DW=w;if(DW)DW.onmessage=dmsg;deepPump()});
 const cardF=()=>{const V=RV&&RV.VL;return!RV?null:V?V.i?V.i>1?V.mv[V.i-2].fen:RV.F[V.base]:null:RV.k>0?RV.F[RV.k-1]:null};let PEND=null;
 const lT=L=>L.filter(Boolean).map(x=>({u:x.u,w:+W(x.cp).toFixed(1),...(x.mate>0?{m:x.mate}:{})}));
-function deepWant(){if(!RV||mode!='review'||RV.DR&&dsp()!=null)return[];const o=PEND?[cardF(),EPF]:[EPF,cardF()];if(RV.E.length>=RV.F.length&&!RV.VL){const n=RV.F.length;for(let d=0;d<n;d++)for(const j of[RV.k+d,RV.k-1-d])if(j>=0&&j<n-1)o.push(RV.F[j])}return o.filter(Boolean)}
+function deepWant(){if(!RV||mode!='review'||RV.DR&&dsp()!=null)return[];const o=PEND||RV&&!RV.VL?[cardF(),EPF]:[EPF,cardF()];if(RV.E.length>=RV.F.length&&!RV.VL){const n=RV.F.length;for(let d=0;d<n;d++)for(const j of[RV.k+d,RV.k-1-d])if(j>=0&&j<n-1)o.push(RV.F[j])}return o.filter(Boolean)}
 function deepPump(){if(!DW||DJ)return;const sm=DQ.shift();const f=sm?sm.f:deepWant().find(f=>!DT[f]||DT[f].d<DD&&!DT[f].done);if(!f)return;const top=f==EPF||f==cardF();
  DJ={f,u:sm&&sm.u,L:[],d:0,H:{}};['setoption name MultiPV value '+(DJ.u?1:10),'position fen '+f,`go depth ${DD} movetime ${top?7000:3500}${DJ.u?' searchmoves '+DJ.u:''}`].forEach(c=>DW.postMessage(c))}
 function deepNav(){if(DJ&&!DJ.u&&!deepWant().slice(0,2).includes(DJ.f))DW.postMessage('stop');deepPump()}
@@ -527,7 +529,8 @@ function dmsg({data}){const l=String(data);if(!DJ)return;
   DJ.L[mp-1]={u:pv[0],cp:sc[1]=='cp'?+sc[2]:(sc[2]>0?1:-1)*(1e4-Math.abs(sc[2])*10),mate:sc[1]=='mate'?+sc[2]:null,pv,wdl:wd&&wd.slice(1).map(Number)};Object.assign(DJ,{d:g('depth'),sd:g('seldepth'),nodes:g('nodes'),nps:g('nps')});if(!DJ.u)(DJ.H[DJ.d]??=[])[mp-1]={u:pv[0],w:+W(DJ.L[mp-1].cp).toFixed(1),...(DJ.L[mp-1].mate>0?{m:DJ.L[mp-1].mate}:{})};
   if(DJ.f==EPF&&mp==1&&Date.now()-epT>400){epT=Date.now();epInfo()}if(mp==1)live()}
  else if(l.startsWith('bestmove')){const J=DJ;DJ=null;deepDone(J);deepPump()}}
-let lvT=0;function live(){const V=RV&&RV.VL,J=DJ,d=J&&J.d-1,L=J&&J.H[d];if(!V||J.u||d<12||!L||J.f!=cardF()||mode!='review'||SC||SG||LN||peek||Date.now()-lvT<300||(PS[J.f]?.d||0)>=d)return;lvT=Date.now();
+let lvT=0;function live(){const V=RV&&RV.VL,J=DJ,d=J&&J.d-1,L=J&&J.H[d];if(!V&&RV&&J&&!J.u&&J.f==cardF()&&!PS[J.f]?.H&&mode=='review'&&!SC&&!SG&&!LN&&!peek&&Date.now()-lvT>800){lvT=Date.now();return ladder(RV.k-1)} // game card: draw the depth trail as it grows
+ if(!V||J.u||d<12||!L||J.f!=cardF()||mode!='review'||SC||SG||LN||peek||Date.now()-lvT<300||(PS[J.f]?.d||0)>=d)return;lvT=Date.now();
  const T=PTs(J.f)&&put(J.f,L.filter(Boolean),d,J.H).slice().sort((a,c)=>c.w-a.w)||PTs(J.f),P=PEND,cu=V.mv[V.i-1].u,pw=(T.find(t=>same(t.u,cu))||{w:-1}).w;if(P&&P.V===V&&V.i==P.i&&P.f==J.f&&Date.now()<P.t&&J.d>P.d&&T[0].w-pw>=1){P.d=J.d;vGo(V.i-1);vplay(T[0].u,1)}else vGo(V.i,1)}
 function deepDone(J){const L=J.L.filter(Boolean);if(!L.length||J.d<8)return;const tl_=lT(L);
  if(J.u){put(J.f,tl_.slice(0,1),0);applyDeep(J.f);return}
