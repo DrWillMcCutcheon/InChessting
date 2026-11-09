@@ -231,7 +231,7 @@ function list(){graph();const h=G.history(),mv=notes;let html='';for(let i=0;i<h
 function newGame(){G.reset();const c=$('#col').value;me=c=='r'?'wb'[Math.random()*2|0]:c;flip=me=='b';notes=[];arrow=null;peek=null;last=null;sel=null;pre=null;busy=false;
  say('#coach',`<span class="lbl">Coach</span><div class="grade">You play ${me=='w'?'White':'Black'}</div><div class="why">Every move you make gets graded. Before you move, ask what your opponent's last move threatens.</div>`);list();draw();bar({cp:0});turn()}
 function labGame(){const c=$('#col').value,col=c=='r'?'wb'[Math.random()*2|0]:c,g={lab:1,c:col,s:'',opp:'Computer \u00b7 '+$('#skill').selectedOptions[0].text,d:new Date().toISOString().slice(0,10),o:'Analysis game'};
- RV={g,S:[],F:[new Chess().fen()],E:[],k:0,N:[],K:[],T:{}};me=col;flip=me=='b';tab('review');$('#vReview').classList.add('lab');$('[data-a="rvBack"]').textContent='Done';RV.VL={base:0,mv:[],i:0,hint:{}};
+ RV={g:{...g,tp:{}},S:[],F:[new Chess().fen()],E:[],k:0,N:[],K:[]};me=col;flip=me=='b';tab('review');$('#vReview').classList.add('lab');$('[data-a="rvBack"]').textContent='Done';RV.VL={base:0,mv:[],i:0,hint:{}};
  $('#rvHead').textContent='vs '+g.opp;$('#rvRes').innerHTML=`Analysis game<small>as ${me=='w'?'White':'Black'}</small>`;$('#rvStats').innerHTML='';vGo(0);cpuGo()}
 async function cpuGo(){const V=RV&&RV.VL,f=V&&vfen();if(!V||!RV.g.lab||V.i<V.mv.length)return;const c=new Chess(f);if(c.turn()==me||c.game_over())return;const u=await cpuMove(f);if(RV.VL===V&&vfen()==f&&V.i==V.mv.length&&mode=='review')vplay(u)}
 const persist=()=>mode=='play'&&ls.set('ct.game',{pgn:G.pgn(),me,notes,skill:$('#skill').value});
@@ -307,14 +307,14 @@ $('#pgnTxt').addEventListener('paste',()=>setTimeout(()=>{if($('#pgnTxt').value.
 // --- game review: one engine pass per ply (cached in the game), then grades + key moments + stepper
 let RV=null,RA=[];const RL='depth 11 movetime 250',pk=(e,t)=>e?{cp:e.cp,mate:e.mate,best:e.best,cp2:e.lines&&e.lines[1]?e.lines[1].cp:null}:null;
 async function review(i){const g=MY.games[i],S=[],F=[],b=new Chess();F.push(b.fen());for(const t of g.s.split(' ')){const m=b.move(t,{sloppy:true});if(!m)break;S.push(m);F.push(b.fen())}
- $('#vReview').classList.remove('lab');$('[data-a="rvBack"]').textContent='Games';const id=RV={g,S,F,E:(g.rv||[]).slice(0,F.length),k:0,N:[],K:[],T:g.tp||(g.tp={})};me=g.c;flip=me=='b';tab('review');rvCalc();rvGo(0);
+ $('#vReview').classList.remove('lab');$('[data-a="rvBack"]').textContent='Games';g.tp=g.tp||{};const id=RV={g,S,F,E:(g.rv||[]).slice(0,F.length),k:0,N:[],K:[]};Object.entries(g.tp).forEach(([j,T])=>T&&put(F[j],T,(g.tpd||{})[j]||10));me=g.c;flip=me=='b';tab('review');rvCalc();rvGo(0);
  for(let j=RV.E.length;j<F.length;j++){const o=await ev(F[j],20,RL);if(RV!==id||mode!='review')break;RV.E[j]=pk(o);if(j%3==2||j==F.length-1){rvCalc();rvGo(RV.k,1)}}
  g.rv=id.E;ls.set('ct.my',MY);if(RV!==id||mode!='review'||id.E.length<F.length)return;if(id.want){id.want=0;startDrill()}
  // preload top-10 ladders, nearest to the current move first, one search at a time so a manual step never waits long
- for(let n=0;;n++){const m=S.length,c=Math.max(0,id.k-1),q=[...Array(m).keys()].map(i=>(c+i)%m).find(i=>!id.T[i]);if(q==null)break;const o=await ev(F[q],20,TOP,10);if(RV!==id||mode!='review')break;id.T[q]=tl(o);await addPlayed(q,id);if(RV!==id||mode!='review')break;rvCalc();if(n%5==4)ls.set('ct.my',MY);rvGo(id.k,1)}
+ for(let n=0;;n++){const m=S.length,c=Math.max(0,id.k-1),q=[...Array(m).keys()].map(i=>(c+i)%m).find(i=>!PT(F[i]));if(q==null)break;await tAt(F[q]);const u=S[q].from+S[q].to+(S[q].promotion||'');await wOf(F[q],null,u);if(RV!==id||mode!='review')break;rvCalc();if(q==id.k-1||n%5==4)redraw()}
  ls.set('ct.my',MY);if(RV===id&&mode=='review')rvGo(id.k,1)}
 // once a position's top-10 search exists it is the single source for best move, loss and grade
-const TS=j=>{const T=RV.T[j];return T&&T.length?T.slice().sort((a,c)=>c.w-a.w):null},BU=j=>{const T=TS(j);return T?T[0].u:RV.E[j]&&RV.E[j].best};
+const TS=j=>PTs(RV.F[j]),BU=j=>{const T=TS(j);return T?T[0].u:RV.E[j]&&RV.E[j].best};
 // best line: replay the engine PV from the position before the current move on a scratch board (peek)
 let LN=null;
 async function rvLine(){SC=null;if(dsp()!=null&&RV.k>=dsp())return;const j=RV.k-1;if(j<0||!RV.N[j])return;const id=LN={},f=RV.F[j],bu=BU(j);if(!bu)return;const fa=new Chess(f);if(!fa.move(U(bu)))return;const o=fa.game_over()?null:await ev(fa.fen());if(LN!==id)return;
@@ -335,12 +335,12 @@ $('#dataTxt').addEventListener('input',()=>{let d;try{d=JSON.parse($('#dataTxt')
  try{Object.entries(d.data).forEach(([k,v])=>k.startsWith('ct.')&&localStorage.setItem(k,v))}catch{return $('#dataMsg').textContent='Could not save here (storage is blocked).'}$('#dataMsg').textContent='Imported. Reloading...';setTimeout(()=>location.reload(),600)});
 // --- game drill: the review with your critical moves held back. Next stops at each one; guess on the board until you find the best move.
 const same=(a,b)=>a&&b&&a.slice(0,4)==b.slice(0,4),dsp=()=>{const D=RV&&RV.DR;return D?D.spots.find(q=>!D.done[q])??null:null};
-async function startDrill(){if(!RV)return;if(RV.E.length<RV.F.length){RV.want=1;$('#drMsg').textContent='Starts when the analysis finishes...';return}rvCalc();const id=RV,cand=RV.N.map((n,j)=>n&&n.col==me&&(n.loss>=20||n.crit)?j:-1).filter(j=>j>=0&&!RV.T[j]);
+async function startDrill(){if(!RV)return;if(RV.E.length<RV.F.length){RV.want=1;$('#drMsg').textContent='Starts when the analysis finishes...';return}rvCalc();const id=RV,cand=RV.N.map((n,j)=>n&&n.col==me&&(n.loss>=20||n.crit)?j:-1).filter(j=>j>=0&&!PT(RV.F[j]));
  for(let i=0;i<cand.length;i++){$('#drMsg').textContent=`Preparing drill: ${i+1} of ${cand.length}...`;await topT(cand[i]);if(RV!==id)return}rvCalc();
  const spots=RV.K.filter(([q])=>RV.N[q]&&RV.N[q].col==me).map(([q])=>q);if(!spots.length){$('#drMsg').textContent='No critical moves for you in this game.';return}
  RV.DR={spots,done:{},val:{},tries:{},hint:{}};rvGo(0)}
-async function topT(j){if(!RV.T[j]){const id=RV,o=await ev(RV.F[j],20,TOP,10);if(RV!==id)return null;RV.T[j]=tl(o);ls.set('ct.my',MY)}return RV.T[j]}
-async function wOf(fen,T,u){const t=T&&T.find(t=>same(t.u,u));if(t)return t.w;const o=await ev(fen,20,TOP+' searchmoves '+u,1);return +W(o.cp).toFixed(1)}
+const topT=j=>tAt(RV.F[j]);
+async function wOf(fen,T,u){const t=(PT(fen)||T||[]).find(t=>same(t.u,u));if(t)return t.w;const o=await ev(fen,20,TOP+' searchmoves '+u,1),w=+W(o.cp).toFixed(1);put(fen,[{u,w}],0);return w}
 // guess plot: empty slots for the top 10; guesses land at their true rank and value, coloured by loss; reveal shows the full list
 function gplot(el,T,gs,reveal,f,pw){const Wd=el.clientWidth||300,H=el.clientHeight||70;el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);
  const x=w=>6+w/100*(Wd-12),sp=pw==null?'':`<rect x="0" y="0" width="${x(pw)}" height="${H}" ${cw(me)}/><rect x="${x(pw)}" y="0" width="${Wd-x(pw)}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${x(pw)}" x2="${x(pw)}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".18"/>`;
@@ -350,17 +350,17 @@ function gplot(el,T,gs,reveal,f,pw){const Wd=el.clientWidth||300,H=el.clientHeig
  el.innerHTML=sp+`<line x1="${x(50)}" x2="${x(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${x(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`+(reveal?`<polyline points="${all.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`:'')
   +all.map((t,i)=>reveal||isG(t.u)?pdot(t,b,x(t.w),y(i),isG(t.u)?4.4:i?2.6:3.4,isG(t.u)?' stroke="var(--ink)" stroke-width="1.2"':'')+(isG(t.u)?`<text x="${x(t.w)+(x(t.w)>Wd-60?-8:8)}" y="${y(i)+3}" text-anchor="${x(t.w)>Wd-60?'end':'start'}" class="sg sp">${san(f,t.u)}</text>`:''):'').join('')}
 // the held-back position: no evaluation, only your guesses
-function dspot(U){ep(null);opn(0);const D=RV.DR,f=RV.F[U],gs=D.val[U]||{},T=RV.T[U],i=D.spots.indexOf(U),e0=RV.E[U],pw=e0?W(e0.cp):50;$('#barf').style.height=(me=='w'?pw:100-pw)+'%';
+function dspot(U){ep(null);opn(0);const D=RV.DR,f=RV.F[U],gs=D.val[U]||{},T=PT(f),i=D.spots.indexOf(U),e0=RV.E[U],pw=e0?W(e0.cp):50;$('#barf').style.height=(me=='w'?pw:100-pw)+'%';
  const me_=RV.S[U],lab=`${(U>>1)+1}${me_.color=='w'?'.':'...'}`;$('#dLab').hidden=true;
  $('#tlL').className=`tl c-${me} on`;$('#tlR').className=`tl c-${me=='w'?'b':'w'}`;
  const b=T&&T.length?Math.max(...T.map(t=>t.w)):0;RA=Object.entries(gs).map(([u,w])=>[u,`rgba(${lc(b-w)},.8)`]);
  $('#rvCoach').innerHTML=(`<span class="lbl">Drill ${i+1} of ${D.spots.length} \u00b7 ${lab} your move</span>`+(D.fb&&D.fb.k==U?D.fb.h:`<div class="why">Find the best move and play it on the board.</div>`))+btns([['Hint','dHint'],['Show answer','dShow']]);
  if(T)gplot($('#dPlot'),T,gs,D.hint[U]?1:0,f,pw);else{gplot($('#dPlot'),null,{},0,f,pw);topT(U).then(()=>{if(RV&&RV.k==U&&dsp()==U){dspot(U);draw()}})}}
-const bestF=()=>RV.VL?vfen():RV.F[RV.k],bestU=()=>{const V=RV.VL,T=V?VT[vfen()]:TS(RV.k),u=T&&T.length?(V?T.slice().sort((a,b)=>b.w-a.w):T)[0].u:!V&&RV.E[RV.k]&&RV.E[RV.k].best;return u&&u!='(none)'?u:null};
+const bestF=()=>RV.VL?vfen():RV.F[RV.k],bestU=()=>{const T=PTs(bestF()),u=T?T[0].u:!RV.VL&&RV.E[RV.k]&&RV.E[RV.k].best;return u&&u!='(none)'?u:null};
 function navUI(){$('#vxB').hidden=!RV.VL||!!RV.g.lab;const nb=$('[data-a="rvStep"][data-k="1"]'),bb=$('#bestB'),V=RV.VL,U=dsp(),stop=!V&&RV.DR&&U!=null&&RV.k>=U,g=!V&&RV.S[RV.k],
  nx=V?(V.i<V.mv.length?V.mv[V.i].u:null):g?g.from+g.to+(g.promotion||''):null,bu=stop?null:bestU(),one=nx&&bu&&same(nx,bu),over=new Chess(bestF()).game_over();
  nb.classList.toggle('j',!!one);bb.classList.toggle('j',!!one);nb.title=one?'The next move is also the best move':'';nb.disabled=!nx||stop;bb.disabled=stop||over;
- if(!bu&&!stop&&!over&&V){const f=vfen();tAt(f).then(()=>{if(RV&&RV.VL===V&&vfen()==f&&VT[f].length)navUI()})}}
+ if(!bu&&!stop&&!over&&V){const f=vfen();tAt(f).then(()=>{if(RV&&RV.VL===V&&vfen()==f&&PT(f)?.length)navUI()})}}
 function drUI(U){const D=RV.DR,b=$('#drBtn'),m=$('#drMsg'),kb=$('[data-a="rvKey"]');navUI();kb.textContent=U!=null?'Next drill':'Key moment';
  if(!D){b.textContent='Drill';if(!RV.want)m.textContent='';return}const n=D.spots.length,d=Object.keys(D.done).length;
  b.textContent=D.end?'Again':'Stop';m.textContent=D.end?D.sum:`${d} of ${n} found${U!=null&&RV.k<U?' \u00b7 Next stops at your next critical move':''}`}
@@ -396,27 +396,28 @@ function duel(j){const op=me=='w'?'b':'w',act=j>=0?RV.S[j].color:null;$('#dLab')
 const TOP='depth 10 movetime 1500';
 // if the played move is not among the MultiPV lines, score it in the same position with the same search (searchmoves), so it sits on the same scale
 const PA=new Set;
-async function addPlayed(j,id){const T=RV.T[j],m=RV.S[j],u=m.from+m.to+(m.promotion||'');if(!T||!T.length||T.some(t=>t.u.slice(0,4)==u.slice(0,4))||PA.has(id.g.d+id.g.opp+j))return;PA.add(id.g.d+id.g.opp+j);
- const o=await ev(RV.F[j],20,TOP+' searchmoves '+u,1);if(RV===id&&o&&o.best&&o.best.slice(0,4)==u.slice(0,4)){T.push({u,w:+W(o.cp).toFixed(1)});ls.set('ct.my',MY)}}
-const dH=f=>DJ&&DJ.f==f&&!DJ.u&&Object.keys(DJ.H).length>(DT[f]?.H?Object.keys(DT[f].H).length:0)?DJ.H:DT[f]?.H;
-function smudge(f,T,x,y){const H=dH(f);if(!H)return'';const D=Object.keys(H).map(Number).sort((a,b)=>a-b),dm=D.at(-1);let o='';
- T.forEach((t,i)=>D.forEach(d=>{const L=H[d],e=L.find(z=>z&&same(z.u,t.u));if(!e||d==dm)return;const bw=Math.max(...L.filter(Boolean).map(z=>z.w));o+=`<ellipse cx="${x(e.w).toFixed(1)}" cy="${y(i).toFixed(1)}" rx="4" ry="2.4" fill="rgb(${lc(bw-e.w)})" opacity="${(.07+.28*(d/dm)**2).toFixed(2)}"/>`}));
+
+const dH=f=>PS[f]?.H||(DJ&&DJ.f==f&&!DJ.u?DJ.H:null);
+function smudge(f,T,x,y){const H=dH(f);if(!H)return'';const dm=PS[f]?.d||1e9,D=Object.keys(H).map(Number).filter(d=>d<dm).sort((a,b)=>a-b);let o='';
+ T.forEach((t,i)=>D.forEach(d=>{const L=H[d],e=L.find(z=>z&&same(z.u,t.u));if(!e)return;const bw=Math.max(...L.filter(Boolean).map(z=>z.w));o+=`<ellipse cx="${x(e.w).toFixed(1)}" cy="${y(i).toFixed(1)}" rx="4" ry="2.4" fill="rgb(${lc(bw-e.w)})" opacity="${(.07+.28*(d/dm)**2).toFixed(2)}"/>`}));
  return`<g filter="url(#smf)">${o}</g>`}
-function depthTxt(f,u,san){const H=dH(f);if(!H||!u)return'';const D=Object.keys(H).map(Number).sort((a,b)=>a-b),rk=d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),i=L.findIndex(z=>same(z.u,u));return i<0?null:i+1};
+function depthTxt(f,u,san){const H=dH(f);if(!H||!u)return'';const D=Object.keys(H).map(Number).filter(d=>d<=(PS[f]?.d||1e9)).sort((a,b)=>a-b),rk=d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),i=L.findIndex(z=>same(z.u,u));return i<0?null:i+1};
  let k=D.length;while(k>0&&rk(D[k-1])==1)k--;const top=k<D.length?D[k]:null,sh=D.filter(d=>d<=6),r6=sh.length?rk(sh.at(-1)):null,dm=D.at(-1);
  return`<b>${san}</b> across depths ${D[0]}\u2013${dm}: `+(top!=null?`engine's first choice from depth ${top}`:`ranked ${rk(dm)??'below 10'} at depth ${dm}`)+(sh.length?`; ranked ${r6??'below 10'} at depth ${sh.at(-1)}`:'')+'.'}
-async function ladder(j){RV.LD=null;$('#dInf').textContent='';const el=$('#dPlot'),id=RV,k=RV.k,n=RV.N[j],Wd=el.clientWidth||300,H=el.clientHeight||58,msg=t=>el.innerHTML=t?`<text x="${Wd/2}" y="${H-4}" text-anchor="middle" class="sl">${t}</text>`:'';el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);
- if(j<0||!n)return msg('');let T=RV.T[j];
- if(!T){msg('comparing top 10...');const o=await ev(RV.F[j],20,TOP,10);RV.T[j]=tl(o);await addPlayed(j,id);ls.set('ct.my',MY);if(RV!==id||RV.k!=k)return;rvCalc();return rvGo(k,1)}
- if(!T.length)return msg('');if(!T.some(t=>t.u.slice(0,4)==n.u.slice(0,4))&&!PA.has(id.g.d+id.g.opp+j)){await addPlayed(j,id);if(RV!==id||RV.k!=k)return;rvCalc();return rvGo(k,1)}
- T=T.slice().sort((a,c)=>c.w-a.w);const N=T.length;
- const f=RV.F[j],b=T[0].w,wh=n.col=='w',mm=n.col==me,x=w=>6+(mm?w:100-w)/100*(Wd-12),y=r=>5+r*(H-10)/Math.max(1,N-1),iT=T.findIndex(t=>t.u.slice(0,4)==n.u.slice(0,4)),pw=iT>=0?T[iT].w:W(-RV.E[j+1].cp);
- const band=(hi,lo,c,o)=>hi>0?`<rect x="${Math.min(x(hi),x(Math.max(0,lo)))}" y="0" width="${Math.abs(x(hi)-x(Math.max(0,lo)))}" height="${H}" fill="var(--${c})" opacity="${o}"/>`:'';
- const P=x(pw);$('#barf').style.height=(wh?pw:100-pw)+'%';
- el.innerHTML=`<rect x="0" y="0" width="${P}" height="${H}" ${cw(me)}/><rect x="${P}" y="0" width="${Wd-P}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${P}" x2="${P}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".18"/>`+`<line x1="${x(50)}" x2="${x(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${x(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`
-  +smudge(f,T,x,y)+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'
-  +(iT>=0?(()=>{const X=x(pw),Y=y(iT),R=X>Wd-110,Ty=Math.min(H-6,Math.max(11,Y+4));return`<circle cx="${X}" cy="${Y}" r="4.6" fill="var(--${CV[n.cls]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${X+(R?-9:9)}" y="${Ty}" text-anchor="${R?'end':'start'}" class="sg sp">${mvn(j)} <tspan class="g-${n.cls}">${n.cls}</tspan></text>`})():'')+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
- RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh,mm,n:N,b,fen:f};$('#dInf').innerHTML=depthTxt(f,n.u,mvn(j))}
+// the dots card, for game moves and side lines alike: the top 10 of position f (where move P was played from), from the mover's side
+function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clientHeight||58,X=v=>6+v/100*(Wd-12),x=w=>X(mm?w:100-w);el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);RV.LD=null;$('#dInf').innerHTML='';
+ const sp=p=>p==null?'':`<rect x="0" y="0" width="${X(p)}" height="${H}" ${cw(me)}/><rect x="${X(p)}" y="0" width="${Wd-X(p)}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${X(p)}" x2="${X(p)}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".18"/>`,
+  mid=`<line x1="${X(50)}" x2="${X(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${X(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`;
+ if(f&&!PT(f)){el.innerHTML=sp(myPw)+mid+`<text x="${Wd/2}" y="${H/2+3}" text-anchor="middle" class="sl">comparing the top 10...</text>`;tAt(f).then(redraw);return}
+ const T=f&&PTs(f);if(!T){el.innerHTML=sp(myPw)+mid;return}
+ const N=T.length,b=T[0].w,y=r=>5+r*(H-10)/Math.max(1,N-1),iT=P?T.findIndex(t=>same(t.u,P.u)):-1,pw=iT>=0?T[iT].w:null;
+ if(P&&iT<0&&!PA.has(f+P.u)){PA.add(f+P.u);wOf(f,T,P.u).then(redraw)}
+ if(pw!=null)$('#barf').style.height=(f.split(' ')[1]=='w'?pw:100-pw)+'%';
+ const lb=iT<0?'':(()=>{const c=P.cls||(g=>g?g[0]:iT==0?'Best':'Good')(GR.find(q=>b-pw>=q[1])),X_=x(pw),Y=y(iT),Rt=X_>Wd-110,Ty=Math.min(H-6,Math.max(11,Y+4));return`<circle cx="${X_}" cy="${Y}" r="4.6" fill="var(--${CV[c]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${X_+(Rt?-9:9)}" y="${Ty}" text-anchor="${Rt?'end':'start'}" class="sg sp">${P.san} <tspan class="g-${c}">${c}</tspan></text>`})();
+ el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+smudge(f,T,x,y)+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
+ RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh:f.split(' ')[1]=='w',mm,n:N,b,fen:f};if(P)$('#dInf').innerHTML=depthTxt(f,P.u,P.san)}
+const redraw=()=>{if(!RV||mode!='review'||SC||SG||LN||peek)return;if(RV.VL)vGo(RV.VL.i,1);else{rvCalc();rvGo(RV.k,1)}};
+function ladder(j){const n=RV.N[j];if(j<0||!n){RV.LD=null;$('#dPlot').innerHTML='';$('#dInf').innerHTML='';return}card(RV.F[j],n.col==me,{u:n.u,san:mvn(j),cls:n.cls})}
 // hold and slide on the card: every candidate gets an arrow (brightness falls off with distance from the finger), the nearest is green;
 // finger travel is halved for fine control, and sliding above the card settles on the best move, which stays after release
 let SC=null,SG=null;
@@ -443,7 +444,13 @@ function rvGraph(k,cut){const{S,N}=RV,V=RV.VL,L=Math.max(S.length,V?V.base+V.mv.
   +(cx>=0?`<line x1="${x(cx)}" x2="${x(cx)}" y1="0" y2="58" class="cur"/>`:'')+N.map((n,i)=>n&&i<cut&&i<fa&&n.col==me&&n.loss>=10?`<circle cx="${x(i)}" cy="${y(n.w)}" r="3.2" fill="var(--${CV[n.cls]})"/>`:'').join('')}
 // --- side lines: the review board is always playable; a move off the game starts a purple side line from that position.
 // Like a drill stop, its card starts empty (just the evaluation split); Hint fills in the top 10, which press-and-hold then explores.
-const VT={};async function tAt(fen){if(!VT[fen]){const o=await ev(fen,20,TOP,10);VT[fen]=tl(o)}return VT[fen]}
+// ONE store of engine results per position (fen): the top 10 from the mover's side (win %), the depth they came from, and the per-depth history.
+// Every view (game card, side lines, arrows, grades, Best, drills) reads PT(fen); every search writes through put(). Deeper results replace
+// shallower ones; a shallower result only adds moves that are missing (e.g. a played move outside the top 10, tagged x).
+const PS={},PT=f=>PS[f]?.T,PTs=f=>{const T=PT(f);return T&&T.length?T.slice().sort((a,c)=>c.w-a.w):null};
+function put(f,T,d,H){const o=PS[f];if(!o||d>=o.d)PS[f]={T:T.concat(o?o.T.filter(t=>t.x&&!T.some(z=>same(z.u,t.u))):[]),d,H:H||o?.H};else T.forEach(t=>{if(!o.T.some(z=>same(z.u,t.u)))o.T.push({...t,x:1})});
+ const j=RV?RV.F.indexOf(f):-1;if(j>=0&&j<RV.S.length){RV.g.tp[j]=PS[f].T;(RV.g.tpd||(RV.g.tpd={}))[j]=PS[f].d;ls.set('ct.my',MY)}return PS[f].T}
+const TQ={};async function tAt(f){if(!PT(f))put(f,tl(await(TQ[f]??=ev(f,20,TOP,10))),10);return PT(f)}
 const vfen=()=>{const V=RV.VL;return V.i?V.mv[V.i-1].fen:RV.F[V.base]};
 // moving a piece of the side that just moved takes that move back and plays yours instead (the piece that just moved counts from where it started)
 const prevF=()=>{const V=RV.VL;if(V&&V.i>0)return V.i>1?V.mv[V.i-2].fen:RV.F[V.base];const k=V?V.base:RV.k;return k>0?RV.F[k-1]:null},
@@ -459,25 +466,16 @@ function vplay(u,hold){let V=RV.VL;
  if(!V){const g=RV.S[RV.k];if(g&&same(g.from+g.to+(g.promotion||''),u))return rvGo(RV.k+1);V=RV.VL={base:RV.k,mv:[],i:0,hint:{}}}
  else if(V.i<V.mv.length){if(same(V.mv[V.i].u,u))return vGo(V.i+1);V.mv.length=V.i}
  const f0=vfen(),c=new Chess(f0),m=c.move(U(u));if(!m)return;const e={u,san:m.san,fen:c.fen(),col:m.color};V.mv.push(e);vGo(V.mv.length);if(RV.g.lab&&m.color==me&&!hold)cpuGo();
- const id=RV,fresh=()=>RV===id&&RV.VL===V&&mode=='review';(async()=>{const o=await ev(e.fen,20,RL);e.w=c.game_over()?(c.in_checkmate()?(c.turn()=='w'?0:100):50):W(c.turn()=='w'?o.cp:-o.cp);if(fresh())vGo(V.i,1);
-  const T=await tAt(f0),w=await wOf(f0,T,u),S_=T.slice().sort((a,b)=>b.w-a.w);e.q={w,loss:Math.max(0,S_[0].w-w),r:S_.findIndex(t=>same(t.u,u)),n:T.length,mt:MT({w})};if(fresh())vGo(V.i,1)})()}
-function vplot(T,fen,myPw,mm,P){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clientHeight||58,X=v=>6+v/100*(Wd-12);el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);
- const sp=p=>p==null?'':`<rect x="0" y="0" width="${X(p)}" height="${H}" ${cw(me)}/><rect x="${X(p)}" y="0" width="${Wd-X(p)}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${X(p)}" x2="${X(p)}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".18"/>`,mid=`<line x1="${X(50)}" x2="${X(50)}" y1="0" y2="${H}" class="sx" stroke-dasharray="2 3"/><text x="${X(50)}" y="${H-3}" text-anchor="middle" class="sl">0.0</text>`;let o=sp(myPw)+mid;
- if(!T||!T.length){el.innerHTML=o+(T?'':`<text x="${Wd/2}" y="${H/2+3}" text-anchor="middle" class="sl">comparing the top 10...</text>`);RV.LD=null;return}
- const S_=T.slice();if(P&&P.w!=null&&!S_.some(t=>same(t.u,P.u)))S_.push({u:P.u,w:P.w});S_.sort((a,c)=>c.w-a.w);const N_=S_.length,b=S_[0].w,x=w=>X(mm?w:100-w),y=r=>5+r*(H-10)/Math.max(1,N_-1),iT=P?S_.findIndex(t=>same(t.u,P.u)):-1;
- if(iT>=0){const pw=mm?S_[iT].w:100-S_[iT].w;o=sp(pw)+mid;$('#barf').style.height=(fen.split(' ')[1]=='w'?S_[iT].w:100-S_[iT].w)+'%'}
- const lb=iT<0?'':(()=>{const l=Math.max(0,b-S_[iT].w),g=GR.find(q=>l>=q[1]),c=g?g[0]:iT==0?'Best':'Good',X_=x(S_[iT].w),Y=y(iT),Rt=X_>Wd-110,Ty=Math.min(H-6,Math.max(11,Y+4));return`<circle cx="${X_}" cy="${Y}" r="4.6" fill="var(--${CV[c]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${X_+(Rt?-9:9)}" y="${Ty}" text-anchor="${Rt?'end':'start'}" class="sg sp">${P.san} <tspan class="g-${c}">${c}</tspan></text>`})();
- el.innerHTML=o+smudge(fen,S_,x,y)+`<g class="${mm?'':'opp'}"><polyline points="${S_.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+S_.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
- RV.LD={pts:S_.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N_-1),wh:fen.split(' ')[1]=='w',mm,n:N_,b,fen};$('#dInf').innerHTML=depthTxt(fen,P&&P.u,P&&P.san)}
+ const id=RV,fresh=()=>RV===id&&RV.VL===V&&mode=='review';(async()=>{const o=await ev(e.fen,20,RL);e.w=c.game_over()?(c.in_checkmate()?(c.turn()=='w'?0:100):50):W(c.turn()=='w'?o.cp:-o.cp);if(fresh())vGo(V.i,1)})()}
 function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=null}V.i=Math.max(0,Math.min(V.mv.length,i));
  G.reset();for(let j=0;j<V.base;j++)G.move(S[j].san);for(let j=0;j<V.i;j++)G.move(V.mv[j].san);sel=hl=null;rd={};arrow=null;RA=[];last=null;
  const cur=V.i?V.mv[V.i-1]:null,fen=G.fen(),tm=G.turn(),e0=E[V.base],pw0=cur?cur.w:e0?W(F[V.base].split(' ')[1]=='w'?e0.cp:-e0.cp):null,myPw=pw0==null?null:me=='w'?pw0:100-pw0;
  if(pw0!=null)$('#barf').style.height=pw0+'%';
  const act=cur?cur.col:V.base?S[V.base-1].color:null,op=me=='w'?'b':'w';$('#dLab').hidden=true;[['#tlL',me],['#tlR',op]].forEach(([q,c])=>$(q).className=`tl c-${c}${act==c?' on':''}`);
- if(cur){const f0=V.i>1?V.mv[V.i-2].fen:F[V.base],T=VT[f0],mm=cur.col==me;vplot(T||null,f0,myPw,mm,{u:cur.u,san:cur.san,w:cur.q&&cur.q.w});
-  if(T&&T.length){const bu=T.slice().sort((a,c)=>c.w-a.w)[0].u;if(!same(bu,cur.u))RA.push([cur.u,`rgba(${lc(cur.q?cur.q.loss:0)},.85)`]);RA.push([bu,`rgba(${lc(0)},.95)`,0,1])}else tAt(f0).then(()=>{if(RV.VL===V&&V.i==i)vGo(V.i,1)})}
- else vplot([],fen,myPw,tm==me);
- const qv=cur&&cur.q?`<b>${cur.san}</b> ${cur.q.r==0?'is the best move':cur.q.r>0?`is option ${cur.q.r+1} of ${cur.q.n}`:'is outside the top 10'}${cur.q.loss>=.5?`, ${cur.q.loss.toFixed(0)}% worse than best`:''}.`:cur?`Checking <b>${cur.san}</b>...`:'Play any move on the board to explore from here.';
+ const f0=cur&&(V.i>1?V.mv[V.i-2].fen:F[V.base]),T=cur&&PTs(f0),r=T?T.findIndex(t=>same(t.u,cur.u)):-1,loss=r>=0?Math.max(0,T[0].w-T[r].w):0;
+ card(f0,cur?cur.col==me:tm==me,cur&&{u:cur.u,san:cur.san},myPw);
+ if(T){if(r!=0)RA.push([cur.u,`rgba(${lc(loss)},.85)`]);RA.push([T[0].u,`rgba(${lc(0)},.95)`,0,1])}
+ const qv=!cur?'Play any move on the board to explore from here.':r<0?`Checking <b>${cur.san}</b>...`:`<b>${cur.san}</b> ${r==0?'is the best move':T[r].x?'is outside the top 10':`is option ${r+1} of ${T.length}`}${loss>=.5?`, ${loss.toFixed(0)}% worse than best`:''}.`;
  $('#rvCoach').innerHTML=`<span class="lbl">${RV.g.lab?'Your game \u00b7 play either side to try lines':`Side line from ${V.base?mvn(V.base-1):'the start'}`}</span><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`;
  ep(G.fen());opn();navUI();rvGraph(V.base+V.i,1e9);draw()}
 // --- openings: the Lichess opening names (CC0) as a move tree, drawn as a sunburst: ring n = move n, arc size = named lines below it
@@ -526,17 +524,16 @@ function deepPump(){if(!DW||DJ)return;const sm=DQ.shift();const f=sm?sm.f:deepWa
 function deepNav(){if(DJ&&!DJ.u&&!deepWant().slice(0,2).includes(DJ.f))DW.postMessage('stop');deepPump()}
 function dmsg({data}){const l=String(data);if(!DJ)return;
  if(l.startsWith('info')&&l.includes(' pv ')&&!/bound/.test(l)){const g=k=>{const m=l.match(new RegExp(' '+k+' (-?\\d+)'));return m?+m[1]:null},sc=l.match(/score (cp|mate) (-?\d+)/);if(!sc)return;const mp=g('multipv')||1,pv=l.split(' pv ')[1].split(' '),wd=l.match(/ wdl (\d+) (\d+) (\d+)/);
-  DJ.L[mp-1]={u:pv[0],cp:sc[1]=='cp'?+sc[2]:(sc[2]>0?1:-1)*(1e4-Math.abs(sc[2])*10),mate:sc[1]=='mate'?+sc[2]:null,pv,wdl:wd&&wd.slice(1).map(Number)};Object.assign(DJ,{d:g('depth'),sd:g('seldepth'),nodes:g('nodes'),nps:g('nps')});if(!DJ.u)(DJ.H[DJ.d]??=[])[mp-1]={u:pv[0],w:W(DJ.L[mp-1].cp)};
+  DJ.L[mp-1]={u:pv[0],cp:sc[1]=='cp'?+sc[2]:(sc[2]>0?1:-1)*(1e4-Math.abs(sc[2])*10),mate:sc[1]=='mate'?+sc[2]:null,pv,wdl:wd&&wd.slice(1).map(Number)};Object.assign(DJ,{d:g('depth'),sd:g('seldepth'),nodes:g('nodes'),nps:g('nps')});if(!DJ.u)(DJ.H[DJ.d]??=[])[mp-1]={u:pv[0],w:+W(DJ.L[mp-1].cp).toFixed(1),...(DJ.L[mp-1].mate>0?{m:DJ.L[mp-1].mate}:{})};
   if(DJ.f==EPF&&mp==1&&Date.now()-epT>400){epT=Date.now();epInfo()}if(mp==1)live()}
  else if(l.startsWith('bestmove')){const J=DJ;DJ=null;deepDone(J);deepPump()}}
-let lvT=0;function live(){const V=RV&&RV.VL,J=DJ;if(!V||J.u||J.d<12||J.f!=cardF()||mode!='review'||SC||SG||LN||peek||Date.now()-lvT<300)return;lvT=Date.now();VT[J.f]=lT(J.L);
- const P=PEND,T=VT[J.f],cu=V.mv[V.i-1].u,pw=(T.find(t=>same(t.u,cu))||{w:-1}).w;if(P&&P.V===V&&V.i==P.i&&P.f==J.f&&Date.now()<P.t&&J.d>P.d&&T[0].w-pw>=1){P.d=J.d;vGo(V.i-1);vplay(T[0].u,1)}else vGo(V.i,1)}
+let lvT=0;function live(){const V=RV&&RV.VL,J=DJ,d=J&&J.d-1,L=J&&J.H[d];if(!V||J.u||d<12||!L||J.f!=cardF()||mode!='review'||SC||SG||LN||peek||Date.now()-lvT<300||(PS[J.f]?.d||0)>=d)return;lvT=Date.now();
+ const T=PTs(J.f)&&put(J.f,L.filter(Boolean),d,J.H).slice().sort((a,c)=>c.w-a.w)||PTs(J.f),P=PEND,cu=V.mv[V.i-1].u,pw=(T.find(t=>same(t.u,cu))||{w:-1}).w;if(P&&P.V===V&&V.i==P.i&&P.f==J.f&&Date.now()<P.t&&J.d>P.d&&T[0].w-pw>=1){P.d=J.d;vGo(V.i-1);vplay(T[0].u,1)}else vGo(V.i,1)}
 function deepDone(J){const L=J.L.filter(Boolean);if(!L.length||J.d<8)return;const tl_=lT(L);
- if(J.u){const D=DT[J.f];if(D&&!D.T.some(t=>same(t.u,J.u)))D.T.push(tl_[0]);applyDeep(J.f);return}
+ if(J.u){put(J.f,tl_.slice(0,1),0);applyDeep(J.f);return}
  DT[J.f]={H:J.H,T:tl_,d:J.d,sd:J.sd,wdl:L[0].wdl,cp:L[0].cp,mate:L[0].mate,pv:L[0].pv,nodes:J.nodes,nps:J.nps,done:1};applyDeep(J.f);if(J.f==EPF)epInfo()}
-function applyDeep(f){if(!RV)return;const D=DT[f],j=RV.F.indexOf(f);if(j>=0&&j<RV.S.length){RV.TD=RV.TD||(RV.g.tpd=RV.g.tpd||{});if((RV.TD[j]||0)<=D.d){RV.T[j]=D.T.slice();RV.TD[j]=D.d;
-  const m=RV.S[j],u=m.from+m.to+(m.promotion||'');if(!D.T.some(t=>same(t.u,u))&&!DQ.some(x=>x.f==f))DQ.push({f,u});ls.set('ct.my',MY);rvCalc()}}
- if(VT[f]!==undefined||RV.VL&&vfen()==f)VT[f]=D.T.slice();
+function applyDeep(f){if(!RV)return;const D=DT[f],j=RV.F.indexOf(f);if(D&&D.T)put(f,D.T,D.d,D.H);
+ if(j>=0&&j<RV.S.length){const m=RV.S[j],u=m.from+m.to+(m.promotion||'');if(!PT(f).some(t=>same(t.u,u))&&!DQ.some(x=>x.f==f))DQ.push({f,u});rvCalc()}
  if(mode!='review'||SC||SG||LN||peek)return;if(RV.VL){if(vfen()==f||f==cardF()||j>=0)vGo(RV.VL.i,1)}else rvGo(RV.k,1)}
 // square control: how many of each side's pieces attack each square (pins and legality ignored), shown like a joint spectral amplitude
 function ctrl(fen){const c=new Chess(fen),B=c.board(),A={w:Array(64).fill(0),b:Array(64).fill(0)},add=(s,f,r)=>{if(f>=0&&f<8&&r>=0&&r<8)A[s][r*8+f]++};
@@ -580,7 +577,7 @@ function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))
  if(!soft)peek=null;sel=hl=null;rd={};arrow=null;const j=k-1,n=N[j],e=E[k],tm=F[k].split(' ')[1],mine=n&&n.col==me;
  last=n?{fen0:F[j],best:BU(j),played:n.u,loss:n.loss}:null;
  RA=[];if(n){if(!n.bt)RA.push([n.u,`rgba(${lc(n.loss)},.85)`]);if(BU(j))RA.push([BU(j),`rgba(${mateIn(j)!=null?MC:lc(0)},.95)`,0,1]);{const pb=BU(k);if(!mine&&n.loss>=20&&pb&&pb!='(none)')RA.push([pb,'rgba(132,128,146,.95)',0,1])}}
- const done=E.length>=F.length,nx=N[k],tail=nx&&nx.crit&&nx.col==me?'<div class="why"><b>Critical moment next.</b> Only one move keeps your advantage here. Try to find it before pressing Next.</div>':'',nT=Object.keys(RV.T).length,prog=done?nT<S.length?`<div class="why">Preparing top-10 plots: ${nT} of ${S.length}</div>`:'':`<div class="why">Analysing ${E.length} of ${F.length} positions...</div>`;
+ const done=E.length>=F.length,nx=N[k],tail=nx&&nx.crit&&nx.col==me?'<div class="why"><b>Critical moment next.</b> Only one move keeps your advantage here. Try to find it before pressing Next.</div>':'',nT=F.slice(0,-1).filter(PT).length,prog=done?nT<S.length?`<div class="why">Preparing top-10 plots: ${nT} of ${S.length}</div>`:'':`<div class="why">Analysing ${E.length} of ${F.length} positions...</div>`;
  const R={W:'You won',L:'You lost',D:'Draw'}[g.r],ac=c=>{const x=N.filter(n=>n&&n.col==c);return x.length?(x.reduce((a,n)=>a+n.acc,0)/x.length).toFixed(0):'-'},cn=k=>N.filter(n=>n&&n.col==me&&n.cls==k).length,op=me=='w'?'b':'w';
  $('#rvHead').textContent=`vs ${g.opp}${g.e?` (${g.e})`:''} \u00b7 ${g.d}`;$('#rvRes').innerHTML=`${R}<small>as ${me=='w'?'White':'Black'}</small>`;
   $('#rvStats').innerHTML=`<div><b>${ac(me)}</b>your acc.</div><div><b>${ac(op)}</b>their acc.</div>`+['Inaccuracy','Mistake','Blunder'].map(c=>`<div><b style="color:var(--${CV[c]})">${cn(c)}</b>${c=='Inaccuracy'?'inacc.':c.toLowerCase()}</div>`).join('');
@@ -598,7 +595,7 @@ function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))
 $('#rvGraph').onclick=e=>{if(!RV)return;const r=e.currentTarget.getBoundingClientRect();rvGo(Math.round((e.clientX-r.left)/r.width*RV.S.length-.5)+1)};
 document.addEventListener('keydown',e=>{if(mode!='review'||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key=='ArrowRight')ACT.rvStep({k:1});else if(e.key=='ArrowLeft')ACT.rvStep({k:-1});else return;e.preventDefault()});
 const ACT={drillGo:()=>{if(RV.DR&&!RV.DR.end){RV.DR=null;return rvGo(RV.k)}startDrill()},rvDrill:d=>drillGame(+d.i),dHint,dShow,rvLine,rvBackLine:()=>{LN=null;rvGo(RV.k)},rv:d=>review(+d.i),rvBack:()=>tab(RV&&RV.g.lab?'play':'mine'),rvTo:d=>rvGo(+d.k),rvStep:d=>{const s_=+d.k,V=RV.VL;if(!V)return rvGo(RV.k+s_);if(s_>0){if(V.i<V.mv.length)vGo(V.i+1)}else if(V.i>0)vGo(V.i-1);else if(!RV.g.lab){RV.VL=null;rvGo(V.base)}},vTo:d=>vGo(+d.k),obk:d=>vplay(d.k),best:async()=>{const f=bestF(),t0=Date.now();if(!DT[f])while(DJ&&DJ.f==f&&!DJ.u&&DJ.d<12&&Date.now()-t0<1200)await new Promise(r=>setTimeout(r,100));
-  const J=DJ&&DJ.f==f&&!DJ.u&&DJ.d>=12&&DJ.L[0],u=(DT[f]&&DT[f].d>=(J?DJ.d:0)?DT[f].T[0].u:J?J.u:null)||bestU()||((await tAt(f)).slice().sort((a,b)=>b.w-a.w)[0]||{}).u;if(!u||bestF()!=f)return;
+  const J=DJ&&DJ.f==f&&!DJ.u&&DJ.d>=12&&DJ.L[0];if(!PT(f))await tAt(f);const u=bestU();if(!u||bestF()!=f)return;
   vplay(u,1);const V=RV.VL;if(!V)return;const P=PEND={V,i:V.i,f,t:Date.now()+3000,d:J?DJ.d:0};navUI();deepNav();setTimeout(()=>{if(PEND!==P)return;PEND=null;navUI();if(RV.VL===V&&RV.g.lab&&V.i==P.i)cpuGo()},3000)},vBack:()=>{const b=RV.VL.base;RV.VL=null;rvGo(b)},
  scPlay:()=>{const u=RV.SQ,f=RV.LD&&RV.LD.fen;if(!u||!f)return;SC=null;peek=null;if(RV.VL&&vfen()==f)return vplay(u);if(RV.VL&&prevF()==f)return vback(u);const b=RV.F.indexOf(f);if(b<0)return;rvGo(b);vplay(u)},rvKey:()=>{const U=dsp();if(U!=null)return rvGo(U);const q=RV.K.find(([q])=>q+1>RV.k)||RV.K[0];if(q)rvGo(q[0]+1)},rvPeek:()=>{SC=null;if(!last||dsp()!=null&&RV.k>=dsp())return;peek=peek?null:new Chess(last.fen0);draw()},spar:()=>{$('#useBook').checked=true;ls.set('ct.book',true);tab('play');newGame()},scan,clr:()=>{MY=null;ls.set('ct.my',null);$('#useBook').disabled=true;$('#useBook').checked=false;$('#bookLbl').textContent='Opponent plays openings from my games (import in My games)';mine()},line,back:()=>{G.load(D.fen);busy=false;arrow=null;draw();bar(pre)},new2:newGame,next:()=>drill(),todr:()=>tab('drill')};
 function tab(t){$('#vReview').hidden=t!='review';if(t=='review'){mode='review';$('.left').hidden=false;['#vPlay','#vDrill','#vMine'].forEach(x=>$(x).hidden=true);['#tPlay','#tDrill'].forEach(x=>$(x).classList.remove('on'));$('#tMine').classList.add('on');return}$('.left').hidden=t=='mine';$('#tMine').classList.toggle('on',t=='mine');$('#vMine').hidden=t!='mine';if(t=='mine'){$('#vPlay').hidden=$('#vDrill').hidden=true;$('#tPlay').classList.remove('on');$('#tDrill').classList.remove('on');return mine()}$('#tPlay').classList.toggle('on',t=='play');$('#tDrill').classList.toggle('on',t=='drill');$('#vPlay').hidden=t!='play';$('#vDrill').hidden=t=='play';
