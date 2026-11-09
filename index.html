@@ -126,7 +126,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
    <div class="sec" id="mSum"></div>
   </div></div>
  <div id="vReview" class="vw" hidden>
-  <div class="panel o1"><div class="sec"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><span class="lbl" id="rvHead"></span><div class="grade" id="rvRes"></div></div><div class="row" style="flex-wrap:nowrap"><button class="btn p nolab" data-a="drillGo" id="drBtn">Drill</button><button class="btn" data-a="rvBack">Games</button></div></div><span class="why nolab" id="drMsg" style="display:block"></span><svg id="rvGraph" viewBox="0 0 300 58" preserveAspectRatio="none" aria-label="Who's winning by move, tap to jump"></svg><div class="stats" id="rvStats"></div></div></div>
+  <div class="panel o1"><div class="sec"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><span class="lbl" id="rvHead"></span><div class="grade" id="rvRes"></div></div><div class="row" style="flex-wrap:nowrap"><button class="btn p nolab" data-a="drillGo" id="drBtn">Drill</button><button class="btn" data-a="rvBack">Games</button></div></div><span class="why nolab" id="drMsg" style="display:block"></span><div class="stats" id="rvStats"></div><svg id="rvGraph" viewBox="0 0 300 58" preserveAspectRatio="none" aria-label="Who's winning by move, tap to jump"></svg></div></div>
   <div class="panel o3">
    <div class="sec" style="padding-bottom:10px"><div class="duel" id="duel"><svg id="dPlot" aria-hidden="true"></svg><i class="tl" id="tlL"></i><i class="tl" id="tlR"></i><div id="dLab" hidden></div></div><svg width="0" height="0" style="position:absolute"><filter id="smf" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter></svg></div>
    <div class="sec rvnav"><div class="row"><button class="btn" id="vxB" data-a="vBack" hidden aria-label="Back to the game line">&#171;</button><button class="btn" data-a="rvStep" data-k="-1" aria-label="Previous move">&#8249; Prev</button><button class="btn big" data-a="rvStep" data-k="1" aria-label="Next move">Next &#8250;</button><button class="btn nb" id="bestB" data-a="best" aria-label="Play the engine's best move">Best</button><button class="btn p nolab" data-a="rvKey">Key moment</button></div></div>
@@ -151,7 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 713bd1ef14</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 58c346c503</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -235,7 +235,7 @@ function labStats(){const V=RV.VL,M=V.mv.map((e,q)=>{const T=PTs(q?V.mv[q-1].fen
   ac=c=>{const x=M.filter(m=>m.col==c);return x.length?(x.reduce((a,m)=>a+Math.max(0,Math.min(100,103.1668*Math.exp(-.04354*m.loss)-3.1669)),0)/x.length).toFixed(0):'-'},
   cn=k=>M.filter(m=>(RV.g.lab==2||m.col==me)&&(GR.find(x=>m.loss>=x[1])||[])[0]==k).length,two=RV.g.lab==2;
  $('#rvStats').innerHTML=`<div><b>${ac(two?'w':me)}</b>${two?'White':'your'} acc.</div><div><b>${ac(two?'b':me=='w'?'b':'w')}</b>${two?'Black':'their'} acc.</div>`+['Inaccuracy','Mistake','Blunder'].map(c=>`<div><b style="color:var(--${CV[c]})">${cn(c)}</b>${c=='Inaccuracy'?'inacc.':c.toLowerCase()}</div>`).join('')}
-function labGame(free){const c=$('#col').value,col=free?'w':c=='r'?'wb'[Math.random()*2|0]:c,g={lab:free?2:1,c:col,s:'',opp:free?'yourself':'Computer \u00b7 '+$('#skill').selectedOptions[0].text,d:new Date().toISOString().slice(0,10),o:free?'Analysis board':'Analysis game'};
+function labGame(free){const c=$('#col').value,col=c=='r'?'wb'[Math.random()*2|0]:c,g={lab:free?2:1,c:col,s:'',opp:free?'yourself':'Computer \u00b7 '+$('#skill').selectedOptions[0].text,d:new Date().toISOString().slice(0,10),o:free?'Analysis board':'Analysis game'};
  RV={g:{...g,tp:{}},S:[],F:[new Chess().fen()],E:[],k:0,N:[],K:[]};me=col;flip=me=='b';tab('review');$('#vReview').classList.add('lab');$('[data-a="rvBack"]').textContent='Done';RV.VL={base:0,mv:[],i:0,hint:{}};
  $('#rvHead').textContent='vs '+g.opp;$('#rvRes').innerHTML=free?'Analysis board<small>both sides</small>':`Analysis game<small>as ${me=='w'?'White':'Black'}</small>`;$('#rvStats').innerHTML='';vGo(0);cpuGo()}
 async function cpuGo(){const V=RV&&RV.VL,f=V&&vfen();if(!V||RV.g.lab!=1||V.i<V.mv.length)return;const c=new Chess(f);if(c.turn()==me||c.game_over())return;const u=await cpuMove(f);if(RV.VL===V&&vfen()==f&&V.i==V.mv.length&&mode=='review')vplay(u)}
