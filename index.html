@@ -65,7 +65,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 #graph,#rvGraph{width:100%;height:64px;background:var(--bg);border-radius:6px}#rvGraph{cursor:pointer}#rvGraph .mid{stroke:var(--line);stroke-dasharray:3 3}#rvGraph .area{fill:var(--sqL);opacity:.8}#rvGraph .ln{fill:none;stroke:var(--ink);stroke-width:1.4;vector-effect:non-scaling-stroke}#rvGraph .cur{stroke:var(--acc);stroke-width:2;vector-effect:non-scaling-stroke}
 #rvMoves{position:relative}.moves .mv{cursor:pointer;border-radius:4px;padding:0 4px}.moves .mv.on{background:var(--acc);color:var(--panel)}
 .duel{position:relative;display:flex;justify-content:space-between;height:76px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border-radius:8px;overflow:visible;background:var(--bg);border:1px solid var(--line)}#dPlot{clip-path:inset(0 round 8px)}
-#dPlot{position:absolute;inset:0;width:100%;height:100%}#dPlot .pl{fill:none;stroke:var(--mute);stroke-width:1.2;opacity:.7}#dPlot .opp .pl{stroke-dasharray:3 3}#dPlot .opp circle,#dPlot .opp path{fill:none;stroke:currentColor;stroke-width:1.1;stroke-dasharray:1.6 1.2}.ring{filter:drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 1px var(--bg))}#dPlot .sx{stroke:var(--line)}#dPlot .sl{fill:var(--mute);font:9px var(--f)}
+#dPlot{position:absolute;inset:0;width:100%;height:100%}#dPlot .bk path{fill:none;stroke:var(--mute);stroke-width:1;stroke-linejoin:round}#dPlot .pl{fill:none;stroke:var(--mute);stroke-width:1.2;opacity:.7}#dPlot .opp .pl{stroke-dasharray:3 3}#dPlot .opp circle,#dPlot .opp path{fill:none;stroke:currentColor;stroke-width:1.1;stroke-dasharray:1.6 1.2}.ring{filter:drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 1px var(--bg))}#dPlot .sx{stroke:var(--line)}#dPlot .sl{fill:var(--mute);font:9px var(--f)}
 .duel>div{position:relative;z-index:1;width:42%;padding:4px 10px;display:flex;flex-direction:column;justify-content:center;line-height:1.25;min-width:0;transition:opacity .3s;text-shadow:0 0 2px var(--bg),0 0 4px var(--bg),0 0 7px var(--bg)}#dR{align-items:flex-end;text-align:right}
 .duel .dim{opacity:.5}.duel .tl{position:absolute;bottom:100%;width:50%;height:3px;z-index:2;opacity:.45;transition:height .2s,opacity .2s}#tlL{border-radius:4px 0 0 0}#tlR{border-radius:0 4px 0 0}#tlL{left:0}#tlR{right:0}.tl.c-w{background:#f4f1f8;box-shadow:inset 0 -1px 0 var(--line)}.tl.c-b{background:#1e1530;box-shadow:inset 0 -1px 0 #4a3d63}.tl.on{height:7px;opacity:1;box-shadow:0 -2px 0 var(--acc)}
 #dPlot .g-Best{fill:var(--best)}#dPlot .g-Good{fill:var(--good)}#dPlot .g-Inaccuracy{fill:var(--inac)}#dPlot .g-Mistake{fill:var(--mist)}#dPlot .g-Blunder{fill:var(--blun)}
@@ -151,7 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 7ee21662c5</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build ad49f8b080</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -168,7 +168,7 @@ function boot(i=0){return new Promise(res=>{const next=()=>res(i+1<SFW.length?bo
  w.onmessage=({data})=>{if(String(data).startsWith('uciok')){clearTimeout(to);w.onerror=null;w.onmessage=null;w.sfName=SFW[i];['setoption name UCI_ShowWDL value true','setoption name Hash value 32'].forEach(c=>w.postMessage(c));res(w)}};w.postMessage('uci')})}
 let sf;const C=new Map;let q=boot().then(w=>{sf=w});
 const ev=(fen,skill=20,lim='depth 12 movetime 900',mpv=skill<20?1:2,k=fen+skill+lim+mpv)=>C.get(k)||(C.set(k,q=q.then(()=>new Promise(res=>{const L=[];sf.onmessage=({data:l})=>{const m=l.match(/score (cp|mate) (-?\d+)/),p=l.match(/ pv (.+?)(?: bmc|$)/);
- if(m&&!/bound/.test(l))L[(l.match(/multipv (\d+)/)?.[1]||1)-1]={cp:m[1]=='cp'?+m[2]:(m[2]>0?1:-1)*(1e4-Math.abs(m[2])*10),mate:m[1]=='mate'?+m[2]:null,best:p?.[1].split(' ')[0],pv:p?.[1].split(' ')};
+ if(m&&!/bound/.test(l))L[(l.match(/multipv (\d+)/)?.[1]||1)-1]={d:+(l.match(/ depth (\d+)/)?.[1]||0),cp:m[1]=='cp'?+m[2]:(m[2]>0?1:-1)*(1e4-Math.abs(m[2])*10),mate:m[1]=='mate'?+m[2]:null,best:p?.[1].split(' ')[0],pv:p?.[1].split(' ')};
  if(l.startsWith('bestmove')){const bm=l.split(' ')[1];res({cp:0,mate:null,...L[0],best:L[0]?.best??bm,bm,lines:L})}};
  ['setoption name Skill Level value '+skill,'setoption name MultiPV value '+mpv,'position fen '+fen,'go '+lim].forEach(c=>sf.postMessage(c))}))),q);
 const nullFen=f=>{const p=f.split(' ');p[1]=p[1]=='w'?'b':'w';p[3]='-';return p.join(' ')};
@@ -402,15 +402,15 @@ const TOP='depth 10 movetime 1500';
 // if the played move is not among the MultiPV lines, score it in the same position with the same search (searchmoves), so it sits on the same scale
 const PA=new Set;
 
-const dH=f=>PS[f]?.H||(DJ&&DJ.f==f&&!DJ.u?DJ.H:null);
+const dH=f=>DJ&&DJ.f==f&&!DJ.u?{...PS[f]?.H,...DJ.H}:PS[f]?.H;
 // each dot's own history: where THAT move sat (value and rank) at every earlier depth, joined by a faint path to where it is now
 function smudge(f,x,y,dm,T){const H=dH(f);if(!H||!T)return'';const D=Object.keys(H).map(Number).filter(d=>d<dm).sort((a,b)=>a-b),R=D.map(d=>H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w));let o='',p='';
  T.forEach((t,i)=>{const pts=[];D.forEach((d,k)=>{const r=R[k].findIndex(e=>same(e.u,t.u));if(r<0)return;const e=R[k][r],X=x(e.w),Y=y(r);pts.push(`${X.toFixed(1)},${Y.toFixed(1)}`);o+=`<ellipse cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" rx="4" ry="2.4" fill="rgb(${lc(R[k][0].w-e.w)})" opacity="${(.07+.28*(d/dm)**2).toFixed(2)}"/>`});
   if(pts.length)p+=`<polyline points="${pts.join(' ')} ${x(t.w).toFixed(1)},${y(i).toFixed(1)}" fill="none" stroke="rgb(${lc(T[0].w-t.w)})" stroke-width=".8" opacity=".3"/>`});
  return`<g filter="url(#smf)">${o}</g>${p}`}
-function depthTxt(f,u,san){const H=dH(f);if(!H||!u)return'';const D=Object.keys(H).map(Number).filter(d=>d<=(PS[f]?.d||1e9)).sort((a,b)=>a-b),rk=d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),i=L.findIndex(z=>same(z.u,u));return i<0?null:i+1};
+function depthTxt(f,u,san){const H=dH(f);if(!H||!u)return'';const D=Object.keys(H).map(Number).filter(d=>d<=(PS[f]?.d||0)+.5).sort((a,b)=>a-b),rk=d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),i=L.findIndex(z=>same(z.u,u));return i<0?null:i+1};
  let k=D.length;while(k>0&&rk(D[k-1])==1)k--;const top=k<D.length?D[k]:null,sh=D.filter(d=>d<=6),r6=sh.length?rk(sh.at(-1)):null,dm=D.at(-1);
- return`<b>${san}</b> across depths ${D[0]}\u2013${dm}: `+(top!=null?`engine's first choice from depth ${top}`:`ranked ${rk(dm)??'below 10'} at depth ${dm}`)+(sh.length?`; ranked ${r6??'below 10'} at depth ${sh.at(-1)}`:'')+'.'}
+ const F_=Math.floor;return`<b>${san}</b> across depths ${F_(D[0])}\u2013${F_(dm)}: `+(top!=null?`engine's first choice from depth ${F_(top)}`:`ranked ${rk(dm)??'below 10'} at depth ${F_(dm)}`)+(sh.length?`; ranked ${r6??'below 10'} at depth ${F_(sh.at(-1))}`:'')+'.'}
 // the dots card, for game moves and side lines alike: the top 10 of position f (where move P was played from), from the mover's side
 function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clientHeight||58,X=v=>6+v/100*(Wd-12),x=w=>X(mm?w:100-w);el.setAttribute('viewBox',`0 0 ${Wd} ${H}`);RV.LD=null;$('#dInf').innerHTML='';
  const sp=p=>p==null?'':`<rect x="0" y="0" width="${X(p)}" height="${H}" ${cw(me)}/><rect x="${X(p)}" y="0" width="${Wd-X(p)}" height="${H}" ${cw(me=='w'?'b':'w')}/><line x1="${X(p)}" x2="${X(p)}" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1" opacity=".18"/>`,
@@ -421,9 +421,12 @@ function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clie
  const N=T.length,b=T[0].w,y=r=>5+r*(H-10)/Math.max(1,N-1),iT=P?T.findIndex(t=>same(t.u,P.u)):-1,pw=iT>=0?T[iT].w:null;
  if(P&&iT<0&&!PA.has(f+P.u)){PA.add(f+P.u);wOf(f,T,P.u).then(redraw)}
  if(pw!=null)$('#barf').style.height=(f.split(' ')[1]=='w'?pw:100-pw)+'%';
- const lb=iT<0?'':(()=>{const c=!lv&&P.cls||(g=>g?g[0]:iT==0?'Best':'Good')(GR.find(q=>b-pw>=q[1])),X_=x(pw),Y=y(iT),Rt=X_>Wd-110,Ty=Math.min(H-6,Math.max(11,Y+4));return`<circle cx="${X_}" cy="${Y}" r="4.6" fill="var(--${CV[c]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${X_+(Rt?-9:9)}" y="${Ty}" text-anchor="${Rt?'end':'start'}" class="sg sp">${P.san} <tspan class="g-${c}">${c}</tspan></text>`})();
- el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+smudge(f,x,y,lv||PS[f].d,T)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
+ const lb=iT<0?'':(()=>{const c=!lv&&P.cls||(g=>g?g[0]:iT==0?'Best':'Good')(GR.find(q=>b-pw>=q[1])),X_=x(pw),Y=y(iT),Rt=X_>Wd/2,Tx=Rt?8:Wd-8,Ty=Math.min(H-6,Math.max(11,Y+4));return`<line x1="${X_+(Rt?-7:7)}" y1="${Y}" x2="${Tx+(Rt?92:-92)}" y2="${Ty-4}" stroke="var(--mute)" stroke-dasharray="1 3" opacity=".5"/><circle cx="${X_}" cy="${Y}" r="4.6" fill="var(--${CV[c]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${Tx}" y="${Ty}" text-anchor="${Rt?'start':'end'}" class="sg sp">${P.san} <tspan class="g-${c}">${c}</tspan></text>`})();
+ el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+bookMark(f,P)+smudge(f,x,y,lv||PS[f].d,T)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
  RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh:f.split(' ')[1]=='w',mm,n:N,b,fen:f};if(P)$('#dInf').innerHTML=depthTxt(f,P.u,P.san)}
+// a small open-book mark while the move played is still a named opening position
+let OLq=0;function bookMark(f,P){if(!P)return'';if(!OT){if(!OLq++)opnLoad().then(redraw).catch(()=>{});return''}const c=new Chess(f);if(!c.move(U(P.u))||!OA[okey(c.fen())])return'';
+ return`<g transform="translate(5,4)" class="bk"><path d="M0,1.5Q3,0 6,1.5V9Q3,7.5 0,9ZM6,1.5Q9,0 12,1.5V9Q9,7.5 6,9Z"/><text x="15" y="8" class="sl">book</text></g>`}
 const redraw=()=>{if(!RV||mode!='review'||SC||SG||LN||peek)return;if(RV.VL)vGo(RV.VL.i,1);else{rvCalc();rvGo(RV.k,1)}};
 function ladder(j){const n=RV.N[j];if(j<0||!n){RV.LD=null;$('#dPlot').innerHTML='';$('#dInf').innerHTML='';return}card(RV.F[j],n.col==me,{u:n.u,san:mvn(j),cls:n.cls})}
 // hold and slide on the card: every candidate gets an arrow (brightness falls off with distance from the finger), the nearest is green;
@@ -456,10 +459,10 @@ function rvGraph(k,cut){const{S,N}=RV,V=RV.VL,L=Math.max(S.length,V?V.base+V.mv.
 // Every view (game card, side lines, arrows, grades, Best, drills) reads PT(fen); every search writes through put(). Deeper results replace
 // shallower ones; a shallower result only adds moves that are missing (e.g. a played move outside the top 10, tagged x).
 const PS={},PT=f=>PS[f]?.T,PTs=f=>{const T=PT(f);return T&&T.length?T.slice().sort((a,c)=>c.w-a.w):null};
-function put(f,T,d,H){const o=PS[f],n=h=>h?Object.keys(h).length:0;H=n(H)>=n(o?.H)?H:o?.H; // the depth trail keeps whichever search went through the most depths
+function put(f,T,d,H){const o=PS[f];H=o?.H||H?{...o?.H,...H}:null; // the depth trail is every sample any search of this position produced
  if(!o||d>=o.d)PS[f]={T:T.concat(o?o.T.filter(t=>t.x&&!T.some(z=>same(z.u,t.u))):[]),d,H};else{o.H=H;T.forEach(t=>{if(!o.T.some(z=>same(z.u,t.u)))o.T.push({...t,x:1})})}
  const j=RV?RV.F.indexOf(f):-1;if(j>=0&&j<RV.S.length){RV.g.tp[j]=PS[f].T;(RV.g.tpd||(RV.g.tpd={}))[j]=PS[f].d;ls.set('ct.my',MY)}return PS[f].T}
-const TQ={};async function tAt(f){if(!PT(f))put(f,tl(await(TQ[f]??=ev(f,20,TOP,10))),10);return PT(f)}
+const TQ={};async function tAt(f){if(!PT(f)){const o=await(TQ[f]??=ev(f,20,TOP,10)),T=tl(o),d=Math.max(1,...o.lines.filter(Boolean).map(l=>l.d||0));put(f,T,d,{[d+.5]:T})}return PT(f)}
 const vfen=()=>{const V=RV.VL;return V.i?V.mv[V.i-1].fen:RV.F[V.base]};
 // moving a piece of the side that just moved takes that move back and plays yours instead (the piece that just moved counts from where it started)
 const prevF=()=>{const V=RV.VL;if(V&&V.i>0)return V.i>1?V.mv[V.i-2].fen:RV.F[V.base];const k=V?V.base:RV.k;return k>0?RV.F[k-1]:null},
@@ -605,7 +608,7 @@ function rvGo(k,soft){if(soft&&(LN||SC||RV.VL||RV.DR&&dsp()!=null&&RV.k==dsp()))
 $('#rvGraph').onclick=e=>{if(!RV)return;const r=e.currentTarget.getBoundingClientRect();rvGo(Math.round((e.clientX-r.left)/r.width*RV.S.length-.5)+1)};
 document.addEventListener('keydown',e=>{if(mode!='review'||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key=='ArrowRight')ACT.rvStep({k:1});else if(e.key=='ArrowLeft')ACT.rvStep({k:-1});else return;e.preventDefault()});
 const ACT={drillGo:()=>{if(RV.DR&&!RV.DR.end){RV.DR=null;return rvGo(RV.k)}startDrill()},rvDrill:d=>drillGame(+d.i),dHint,dShow,rvLine,rvBackLine:()=>{LN=null;rvGo(RV.k)},rv:d=>review(+d.i),rvBack:()=>tab(RV&&RV.g.lab?'play':'mine'),rvTo:d=>rvGo(+d.k),rvStep:d=>{const s_=+d.k,V=RV.VL;if(!V)return rvGo(RV.k+s_);if(s_>0){if(V.i<V.mv.length)vGo(V.i+1)}else if(V.i>0)vGo(V.i-1);else if(!RV.g.lab){RV.VL=null;rvGo(V.base)}},vTo:d=>vGo(+d.k),obk:d=>vplay(d.k),best:async()=>{const f=bestF(),t0=Date.now();if(!DT[f])while(DJ&&DJ.f==f&&!DJ.u&&DJ.d<12&&Date.now()-t0<1200)await new Promise(r=>setTimeout(r,100));
-  const J=DJ&&DJ.f==f&&!DJ.u&&DJ.d>=12&&DJ.L[0];if(!PT(f))await tAt(f);const u=bestU();if(!u||bestF()!=f)return;
+  const J=DJ&&DJ.f==f&&!DJ.u&&DJ.d>=12&&DJ.L[0],LH=J&&DJ.H[DJ.d-1];if(!PT(f)&&!LH)await tAt(f);const u=LH&&DJ.d-1>(PS[f]?.d||0)?LH.filter(Boolean).sort((a,b)=>b.w-a.w)[0].u:bestU();if(!u||bestF()!=f)return;
   vplay(u,1);const V=RV.VL;if(!V)return;const P=PEND={V,i:V.i,f,t:Date.now()+3000,d:J?DJ.d:0};navUI();deepNav();setTimeout(()=>{if(PEND!==P)return;PEND=null;navUI();if(RV.VL===V&&RV.g.lab&&V.i==P.i)cpuGo()},3000)},vBack:()=>{const b=RV.VL.base;RV.VL=null;rvGo(b)},
  scPlay:()=>{const u=RV.SQ,f=RV.LD&&RV.LD.fen;if(!u||!f)return;SC=null;peek=null;if(RV.VL&&vfen()==f)return vplay(u);if(RV.VL&&prevF()==f)return vback(u);const b=RV.F.indexOf(f);if(b<0)return;rvGo(b);vplay(u)},rvKey:()=>{const U=dsp();if(U!=null)return rvGo(U);const q=RV.K.find(([q])=>q+1>RV.k)||RV.K[0];if(q)rvGo(q[0]+1)},rvPeek:()=>{SC=null;if(!last||dsp()!=null&&RV.k>=dsp())return;peek=peek?null:new Chess(last.fen0);draw()},spar:()=>{$('#useBook').checked=true;ls.set('ct.book',true);tab('play');newGame()},scan,clr:()=>{MY=null;ls.set('ct.my',null);$('#useBook').disabled=true;$('#useBook').checked=false;$('#bookLbl').textContent='Opponent plays openings from my games (import in My games)';mine()},line,back:()=>{G.load(D.fen);busy=false;arrow=null;draw();bar(pre)},new2:newGame,next:()=>drill(),todr:()=>tab('drill')};
 function tab(t){$('#vReview').hidden=t!='review';if(t=='review'){mode='review';$('.left').hidden=false;['#vPlay','#vDrill','#vMine'].forEach(x=>$(x).hidden=true);['#tPlay','#tDrill'].forEach(x=>$(x).classList.remove('on'));$('#tMine').classList.add('on');return}$('.left').hidden=t=='mine';$('#tMine').classList.toggle('on',t=='mine');$('#vMine').hidden=t!='mine';if(t=='mine'){$('#vPlay').hidden=$('#vDrill').hidden=true;$('#tPlay').classList.remove('on');$('#tDrill').classList.remove('on');return mine()}$('#tPlay').classList.toggle('on',t=='play');$('#tDrill').classList.toggle('on',t=='drill');$('#vPlay').hidden=t!='play';$('#vDrill').hidden=t=='play';
