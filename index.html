@@ -151,7 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 58c346c503</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 7ee21662c5</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -403,9 +403,11 @@ const TOP='depth 10 movetime 1500';
 const PA=new Set;
 
 const dH=f=>PS[f]?.H||(DJ&&DJ.f==f&&!DJ.u?DJ.H:null);
-function smudge(f,x,y,dm){const H=dH(f);if(!H)return'';let o='';
- Object.keys(H).map(Number).filter(d=>d<dm).forEach(d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),bw=L[0]?.w;L.forEach((e,r)=>o+=`<ellipse cx="${x(e.w).toFixed(1)}" cy="${y(r).toFixed(1)}" rx="4" ry="2.4" fill="rgb(${lc(bw-e.w)})" opacity="${(.07+.28*(d/dm)**2).toFixed(2)}"/>`)});
- return`<g filter="url(#smf)">${o}</g>`}
+// each dot's own history: where THAT move sat (value and rank) at every earlier depth, joined by a faint path to where it is now
+function smudge(f,x,y,dm,T){const H=dH(f);if(!H||!T)return'';const D=Object.keys(H).map(Number).filter(d=>d<dm).sort((a,b)=>a-b),R=D.map(d=>H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w));let o='',p='';
+ T.forEach((t,i)=>{const pts=[];D.forEach((d,k)=>{const r=R[k].findIndex(e=>same(e.u,t.u));if(r<0)return;const e=R[k][r],X=x(e.w),Y=y(r);pts.push(`${X.toFixed(1)},${Y.toFixed(1)}`);o+=`<ellipse cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" rx="4" ry="2.4" fill="rgb(${lc(R[k][0].w-e.w)})" opacity="${(.07+.28*(d/dm)**2).toFixed(2)}"/>`});
+  if(pts.length)p+=`<polyline points="${pts.join(' ')} ${x(t.w).toFixed(1)},${y(i).toFixed(1)}" fill="none" stroke="rgb(${lc(T[0].w-t.w)})" stroke-width=".8" opacity=".3"/>`});
+ return`<g filter="url(#smf)">${o}</g>${p}`}
 function depthTxt(f,u,san){const H=dH(f);if(!H||!u)return'';const D=Object.keys(H).map(Number).filter(d=>d<=(PS[f]?.d||1e9)).sort((a,b)=>a-b),rk=d=>{const L=H[d].filter(Boolean).slice().sort((a,b)=>b.w-a.w),i=L.findIndex(z=>same(z.u,u));return i<0?null:i+1};
  let k=D.length;while(k>0&&rk(D[k-1])==1)k--;const top=k<D.length?D[k]:null,sh=D.filter(d=>d<=6),r6=sh.length?rk(sh.at(-1)):null,dm=D.at(-1);
  return`<b>${san}</b> across depths ${D[0]}\u2013${dm}: `+(top!=null?`engine's first choice from depth ${top}`:`ranked ${rk(dm)??'below 10'} at depth ${dm}`)+(sh.length?`; ranked ${r6??'below 10'} at depth ${sh.at(-1)}`:'')+'.'}
@@ -420,7 +422,7 @@ function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clie
  if(P&&iT<0&&!PA.has(f+P.u)){PA.add(f+P.u);wOf(f,T,P.u).then(redraw)}
  if(pw!=null)$('#barf').style.height=(f.split(' ')[1]=='w'?pw:100-pw)+'%';
  const lb=iT<0?'':(()=>{const c=!lv&&P.cls||(g=>g?g[0]:iT==0?'Best':'Good')(GR.find(q=>b-pw>=q[1])),X_=x(pw),Y=y(iT),Rt=X_>Wd-110,Ty=Math.min(H-6,Math.max(11,Y+4));return`<circle cx="${X_}" cy="${Y}" r="4.6" fill="var(--${CV[c]})" stroke="var(--ink)" stroke-width="1.3"/><text x="${X_+(Rt?-9:9)}" y="${Ty}" text-anchor="${Rt?'end':'start'}" class="sg sp">${P.san} <tspan class="g-${c}">${c}</tspan></text>`})();
- el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+smudge(f,x,y,lv||PS[f].d)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
+ el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+smudge(f,x,y,lv||PS[f].d,T)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
  RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh:f.split(' ')[1]=='w',mm,n:N,b,fen:f};if(P)$('#dInf').innerHTML=depthTxt(f,P.u,P.san)}
 const redraw=()=>{if(!RV||mode!='review'||SC||SG||LN||peek)return;if(RV.VL)vGo(RV.VL.i,1);else{rvCalc();rvGo(RV.k,1)}};
 function ladder(j){const n=RV.N[j];if(j<0||!n){RV.LD=null;$('#dPlot').innerHTML='';$('#dInf').innerHTML='';return}card(RV.F[j],n.col==me,{u:n.u,san:mvn(j),cls:n.cls})}
