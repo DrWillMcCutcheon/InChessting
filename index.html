@@ -65,7 +65,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 #graph,#rvGraph{width:100%;height:64px;background:var(--bg);border-radius:6px}#rvGraph{cursor:pointer}#rvGraph .mid{stroke:var(--line);stroke-dasharray:3 3}#rvGraph .area{fill:var(--sqL);opacity:.8}#rvGraph .ln{fill:none;stroke:var(--ink);stroke-width:1.4;vector-effect:non-scaling-stroke}#rvGraph .cur{stroke:var(--acc);stroke-width:2;vector-effect:non-scaling-stroke}
 #rvMoves{position:relative}.moves .mv{cursor:pointer;border-radius:4px;padding:0 4px}.moves .mv.on{background:var(--acc);color:var(--panel)}
 .duel{position:relative;display:flex;justify-content:space-between;height:76px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border-radius:8px;overflow:visible;background:var(--bg);border:1px solid var(--line)}#dPlot{clip-path:inset(0 round 8px)}
-#dPlot{position:absolute;inset:0;width:100%;height:100%}#dPlot .bk path{fill:none;stroke:var(--mute);stroke-width:1;stroke-linejoin:round}#dPlot .pl{fill:none;stroke:var(--mute);stroke-width:1.2;opacity:.7}#dPlot .opp .pl{stroke-dasharray:3 3}#dPlot .opp circle,#dPlot .opp path{fill:none;stroke:currentColor;stroke-width:1.1;stroke-dasharray:1.6 1.2}.ring{filter:drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 1px var(--bg))}#dPlot .sx{stroke:var(--line)}#dPlot .sl{fill:var(--mute);font:9px var(--f)}
+#dPlot{position:absolute;inset:0;width:100%;height:100%}#obk .lbl{display:block;margin-bottom:2px}#rvGraph .bkb{fill:rgba(170,118,62,.2);stroke:rgb(176,122,64);stroke-width:1.6;vector-effect:non-scaling-stroke}#dPlot .bk path{fill:none;stroke:var(--mute);stroke-width:1;stroke-linejoin:round}#dPlot .pl{fill:none;stroke:var(--mute);stroke-width:1.2;opacity:.7}#dPlot .opp .pl{stroke-dasharray:3 3}#dPlot .opp circle,#dPlot .opp path{fill:none;stroke:currentColor;stroke-width:1.1;stroke-dasharray:1.6 1.2}.ring{filter:drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 1px var(--bg))}#dPlot .sx{stroke:var(--line)}#dPlot .sl{fill:var(--mute);font:9px var(--f)}
 .duel>div{position:relative;z-index:1;width:42%;padding:4px 10px;display:flex;flex-direction:column;justify-content:center;line-height:1.25;min-width:0;transition:opacity .3s;text-shadow:0 0 2px var(--bg),0 0 4px var(--bg),0 0 7px var(--bg)}#dR{align-items:flex-end;text-align:right}
 .duel .dim{opacity:.5}.duel .tl{position:absolute;bottom:100%;width:50%;height:3px;z-index:2;opacity:.45;transition:height .2s,opacity .2s}#tlL{border-radius:4px 0 0 0}#tlR{border-radius:0 4px 0 0}#tlL{left:0}#tlR{right:0}.tl.c-w{background:#f4f1f8;box-shadow:inset 0 -1px 0 var(--line)}.tl.c-b{background:#1e1530;box-shadow:inset 0 -1px 0 #4a3d63}.tl.on{height:7px;opacity:1;box-shadow:0 -2px 0 var(--acc)}
 #dPlot .g-Best{fill:var(--best)}#dPlot .g-Good{fill:var(--good)}#dPlot .g-Inaccuracy{fill:var(--inac)}#dPlot .g-Mistake{fill:var(--mist)}#dPlot .g-Blunder{fill:var(--blun)}
@@ -130,7 +130,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
   <div class="panel o3">
    <div class="sec" style="padding-bottom:10px"><div class="duel" id="duel"><svg id="dPlot" aria-hidden="true"></svg><i class="tl" id="tlL"></i><i class="tl" id="tlR"></i><div id="dLab" hidden></div></div><svg width="0" height="0" style="position:absolute"><filter id="smf" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter></svg></div>
    <div class="sec rvnav"><div class="row"><button class="btn" id="vxB" data-a="vBack" hidden aria-label="Back to the game line">&#171;</button><button class="btn" data-a="rvStep" data-k="-1" aria-label="Previous move">&#8249; Prev</button><button class="btn big" data-a="rvStep" data-k="1" aria-label="Next move">Next &#8250;</button><button class="btn nb" id="bestB" data-a="best" aria-label="Play the engine's best move">Best</button><button class="btn p nolab" data-a="rvKey">Key moment</button></div></div>
-   <div class="sec coach" id="rvCoach"></div>
+   <div class="sec coach" id="rvCoach"></div><div class="why" id="obk" style="padding:0 16px 10px"></div>
    
    <details class="sec fold" id="opn" open hidden><summary><span class="lbl">Opening</span><span class="es" id="opnS"></span></summary><div class="fb"><svg id="osb" viewBox="-162 -162 324 324" aria-label="Map of named openings; tap a ring to zoom in, the centre to zoom out"></svg><div id="opnI"></div></div></details>
    <details class="sec nolab fold" id="fKey" open><summary><span class="lbl">Key moments</span></summary><div class="fb"><div class="row" id="rvKeys" style="flex-wrap:wrap"></div></div></details>
@@ -151,7 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build ad49f8b080</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build c4e988aad8</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -425,8 +425,8 @@ function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clie
  el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+bookMark(f,P)+smudge(f,x,y,lv||PS[f].d,T)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
  RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh:f.split(' ')[1]=='w',mm,n:N,b,fen:f};if(P)$('#dInf').innerHTML=depthTxt(f,P.u,P.san)}
 // a small open-book mark while the move played is still a named opening position
-let OLq=0;function bookMark(f,P){if(!P)return'';if(!OT){if(!OLq++)opnLoad().then(redraw).catch(()=>{});return''}const c=new Chess(f);if(!c.move(U(P.u))||!OA[okey(c.fen())])return'';
- return`<g transform="translate(5,4)" class="bk"><path d="M0,1.5Q3,0 6,1.5V9Q3,7.5 0,9ZM6,1.5Q9,0 12,1.5V9Q9,7.5 6,9Z"/><text x="15" y="8" class="sl">book</text></g>`}
+let OLq=0;function bookMark(f,P){if(!P)return'';if(!OT){if(opnOK()&&!OLq++)opnLoad().then(redraw).catch(()=>{});return''}const c=new Chess(f);if(!c.move(U(P.u))||!OA[okey(c.fen())])return'';
+ return`<g transform="translate(${$('#dPlot').viewBox.baseVal.width-44},4)" class="bk"><path d="M0,1.5Q3,0 6,1.5V9Q3,7.5 0,9ZM6,1.5Q9,0 12,1.5V9Q9,7.5 6,9Z"/><text x="15" y="8" class="sl">book</text></g>`}
 const redraw=()=>{if(!RV||mode!='review'||SC||SG||LN||peek)return;if(RV.VL)vGo(RV.VL.i,1);else{rvCalc();rvGo(RV.k,1)}};
 function ladder(j){const n=RV.N[j];if(j<0||!n){RV.LD=null;$('#dPlot').innerHTML='';$('#dInf').innerHTML='';return}card(RV.F[j],n.col==me,{u:n.u,san:mvn(j),cls:n.cls})}
 // hold and slide on the card: every candidate gets an arrow (brightness falls off with distance from the finger), the nearest is green;
@@ -451,7 +451,8 @@ function scrub(e,ph){const D=$('#duel'),L=RV&&RV.LD,j=RV?RV.k-1:-1;if(!L||mode!=
 function rvGraph(k,cut){const{S,N}=RV,V=RV.VL,L=Math.max(S.length,V?V.base+V.mv.length:0)||1,x=i=>(i+.5)/L*300,y=w=>56-w*.52,fa=V?V.base:1e9,P=N.map((n,i)=>n&&i<cut&&[i,n.w]).filter(Boolean),
  A=P.filter(([i])=>i<fa),B=P.filter(([i])=>i>=fa-1),pa=(Q,o)=>Q.length?`<g opacity="${o}"><path d="M${x(Q[0][0])},56 ${Q.map(([i,w])=>`L${x(i)},${y(w)}`).join(' ')} L${x(Q.at(-1)[0])},56Z" class="area"/><path d="${Q.map(([i,w],q)=>`${q?'L':'M'}${x(i)},${y(w)}`).join(' ')}" class="ln"/></g>`:'',
  vp=V?[[V.base-1,V.base?N[V.base-1]&&N[V.base-1].w:50],...V.mv.map((m,q)=>[V.base+q,m.w])].filter(p=>p[1]!=null):[],cx=V?V.base+V.i-1:k-1;
- $('#rvGraph').innerHTML=`<line x1="0" x2="300" y1="30" y2="30" class="mid"/>`+pa(A,1)+pa(B,V?.1:1)+(vp.length>1?`<path d="${vp.map(([i,w],q)=>`${q?'L':'M'}${x(i)},${y(w)}`).join(' ')}" fill="none" stroke="var(--acc)" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`+vp.slice(1).map(([i,w])=>`<circle cx="${x(i)}" cy="${y(w)}" r="2.6" fill="var(--acc)"/>`).join(''):'')
+ const bM=V?S.slice(0,V.base).map(m=>m.san).concat(V.mv.map(m=>m.san)):S.map(m=>m.san),bF=V?RV.F.slice(0,V.base+1).concat(V.mv.map(m=>m.fen)):RV.F,bl=bookLv(bM,bF),hw=150/L;
+ $('#rvGraph').innerHTML=`<line x1="0" x2="300" y1="30" y2="30" class="mid"/>`+pa(A,1)+(bl.length?`<path d="M${x(0)-hw},56${bl.map((l,i)=>`L${x(i)-hw},${56-l*52}L${x(i)+hw},${56-l*52}`).join('')}L${x(bl.length-1)+hw},56Z" class="bkb"/>`:'')+pa(B,V?.1:1)+(vp.length>1?`<path d="${vp.map(([i,w],q)=>`${q?'L':'M'}${x(i)},${y(w)}`).join(' ')}" fill="none" stroke="var(--acc)" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`+vp.slice(1).map(([i,w])=>`<circle cx="${x(i)}" cy="${y(w)}" r="2.6" fill="var(--acc)"/>`).join(''):'')
   +(cx>=0?`<line x1="${x(cx)}" x2="${x(cx)}" y1="0" y2="58" class="cur"/>`:'')+N.map((n,i)=>n&&i<cut&&i<fa&&n.col==me&&n.loss>=10?`<circle cx="${x(i)}" cy="${y(n.w)}" r="3.2" fill="var(--${CV[n.cls]})"/>`:'').join('')}
 // --- side lines: the review board is always playable; a move off the game starts a purple side line from that position.
 // Like a drill stop, its card starts empty (just the evaluation split); Hint fills in the top 10, which press-and-hold then explores.
@@ -492,16 +493,29 @@ function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=nul
  if(RV.g.lab)labStats();ep(G.fen());opn();navUI();rvGraph(V.base+V.i,1e9);draw()}
 // --- openings: the Lichess opening names (CC0) as a move tree, drawn as a sunburst: ring n = move n, arc size = named lines below it
 let OT=null,OL=null,OZ=null,OB=null,OP=null;const OA={},ON=[],okey=f=>f.split(' ').slice(0,3).join(' ');
-function opnLoad(){return OL||(OL=new Promise((r,j)=>{const e=document.createElement('script');e.src='openings.js';e.onload=r;e.onerror=j;document.head.append(e)}).then(()=>{
- OT={k:{},d:0,m:''};for(const l of OPN.split('\n')){const[e,n,m]=l.split('|');let t=OT;for(const x of m.split(' '))t=t.k[x]||(t.k[x]={k:{},m:x,p:t,d:t.d+1});t.n=n;t.e=e}
- const c=new Chess(),dfs=(t,a0,a1)=>{t.i=ON.push(t)-1;t.h=(a0+a1)*180;OA[okey(c.fen())]??=t;const K=Object.values(t.k);t.c=(t.n?1:0);K.forEach(x=>{c.move(x.m);dfs(x,0,0);c.undo()});t.c+=K.reduce((a,x)=>a+x.c,0)},
-  hue=(t,a0,a1)=>{t.h=((a0+a1)/2*360+250)%360;const K=Object.values(t.k).sort((a,b)=>b.c-a.c),S=K.reduce((a,x)=>a+x.c,0);let a=a0;K.forEach(x=>{const w=(a1-a0)*x.c/S;hue(x,a,a+w);a+=w})};
- dfs(OT);hue(OT,0,1);OZ=OT}))}
-const onm=t=>{while(t&&!t.n)t=t.p;return t};
+// the move tree is built here (cheap); the board position of every node is worked out in a background worker so the page never stalls
+function opnTrie(src){const R={k:{},d:0,m:''},O=[];for(const l of src.split('\n')){const[e,n,m]=l.split('|');let t=R;for(const x of m.split(' '))t=t.k[x]||(t.k[x]={k:{},m:x,p:t,d:t.d+1});t.n=n;t.e=e}
+ const d=t=>{t.i=O.push(t)-1;t.c=t.n?1:0;Object.values(t.k).forEach(x=>{d(x);t.c+=x.c})};d(R);return{R,O}}
+const opnKeys=src=>{const{R}=opnTrie(src),c=new Chess(),K=[],d=t=>{K.push(c.fen().split(' ').slice(0,3).join(' '));Object.values(t.k).forEach(x=>{c.move(x.m);d(x);c.undo()})};d(R);return K};
+const opnOK=()=>!RV||RV.g.lab||RV.E.length>=RV.F.length; // wait until the game's first engine pass has filled the graph
+function opnLoad(){return OL||(OL=new Promise((r,j)=>{const e=document.createElement('script');e.src='openings.js';e.onload=r;e.onerror=j;document.head.append(e)}).then(async()=>{
+ const{R,O}=opnTrie(OPN),hue=(t,a0,a1)=>{t.h=((a0+a1)/2*360+250)%360;const K=Object.values(t.k).sort((a,b)=>b.c-a.c),S=K.reduce((a,x)=>a+x.c,0);let a=a0;K.forEach(x=>{const w=(a1-a0)*x.c/S;hue(x,a,a+w);a+=w})};hue(R,0,1);ON.push(...O);
+ const K=await new Promise(r=>{try{const u=n=>new URL(n,location.href).href,w=new Worker(URL.createObjectURL(new Blob([`importScripts('${u('chess.js')}','${u('openings.js')}');${opnTrie};postMessage((${opnKeys})(OPN))`],{type:'text/javascript'})));
+  w.onmessage=({data})=>{w.terminate();r(data)};w.onerror=()=>{w.terminate();r(opnKeys(OPN))}}catch{r(opnKeys(OPN))}});
+ K.forEach((k,i)=>OA[k]??=O[i]);OT=R;OZ=OT;if(RV)setTimeout(redraw)}))}
+const onm=t=>{while(t&&!t.n)t=t.p;return t},onote=n=>{const ks=Object.keys(OPNN).sort((a,x)=>x.length-a.length),fm=ks.find(k=>n.startsWith(k)),vr=ks.find(k=>k!=fm&&n.indexOf(k)>(fm||'').length);return[fm,vr].filter(Boolean)};
+// how mainline each move of a line is, from how many named lines continue through it compared with its alternatives (very approximate):
+// 1 = mainline, .5 = known side line, .25 = rare; it only ever steps down, and the list stops where the line leaves the book
+const POP=['London System','Colle','Jobava','Stonewall','Catalan',"King's Indian Attack",'Torre Attack','Trompowsky'],BLc={};
+function bookLv(M,F){if(!OT)return[];const ky=M.join(' ');if(BLc[ky])return BLc[ky];let t=OT,lv=1;const o=[];
+ for(let i=0;i<M.length;i++){const x=t.k[M[i]]||OA[okey(F[i+1])];if(!x||!x.p)break;const K=Object.values(x.p.k),S=K.reduce((a,y)=>a+y.c,0),s=x.c/S,nm=onm(x);
+  let r=x.c==Math.max(...K.map(y=>y.c))||s>=.15?1:s<.02?.25:.5;if(nm&&POP.some(k=>nm.n.includes(k)))r=Math.max(r,.5);o.push(lv=Math.min(lv,r));t=x}
+ return BLc[ky]=o}
 function opnFens(){const V=RV.VL;return V?RV.F.slice(0,V.base+1).concat(V.mv.slice(0,V.i).map(e=>e.fen)):RV.F.slice(0,RV.k+1)}
-async function opn(on=1){const box=$('#opn');if(!on||!RV){box.hidden=true;return}box.hidden=false;if(!OT){$('#opnS').textContent='loading...';try{await opnLoad()}catch{$('#opnS').textContent='unavailable offline';return}}
+async function opn(on=1){const box=$('#opn');if(!on||!RV){box.hidden=true;$('#obk').innerHTML='';return}box.hidden=false;if(!OT){if(!opnOK()){$('#opnS').textContent='after the first pass...';return}$('#opnS').textContent='loading...';try{await opnLoad()}catch{$('#opnS').textContent='unavailable offline';return}}
  const F=opnFens();let k=F.length;while(k--&&!OA[okey(F[k])]);const b=OA[okey(F[Math.max(k,0)])]||OT,cur=k==F.length-1;const ky=b.i+':'+k+':'+F.length;if(ky==OP?.ky&&!box.dataset.dirty)return;if(b!==OB){OB=b;OZ=b.d>6?(t=>{while(t.d>b.d-5)t=t.p;return t})(b):OT}OP={b,cur,ply:k,ky};
- const nm=onm(b);$('#opnS').textContent=nm?nm.e+' '+nm.n.split(':')[0]:'Starting position';if(box.open)osb(),oinfo()}
+ const nm=onm(b),nk=nm&&onote(nm.n),br=nk&&nk.length?OPNN[nk.at(-1)].split(/(?<=\.)\s/)[0]:'';$('#opnS').textContent=nm?nm.e+' '+nm.n.split(':')[0]:'Starting position';
+ $('#obk').innerHTML=nm?cur?`<span class="lbl">Book \u00b7 ${nm.n}</span>${br}`:`<span class="lbl">Out of book</span>${nm.n}, left after move ${(k>>1)+1}.`:'';if(box.open)osb(),oinfo()}
 const opt=(a,r)=>[r*Math.sin(a),-r*Math.cos(a)],ops=(a,r)=>opt(a,r).map(v=>v.toFixed(1)).join(',');
 function wheel(Z,R0,R1,tg){const D=8,dr=(R1-R0)/D,big=R1>100,on=new Set,zs=new Set;for(let t=OB;t;t=t.p)on.add(t);for(let t=tg;t;t=t.p)zs.add(t);let o='',pin=null,hit=null;
  const arc=(t,a0,a1,d,sub)=>{if(d>D||a1-a0<.004)return;sub=sub||t==OB;const r0=R0+(d-1)*dr,r1=r0+dr,L=a1-a0>Math.PI?1:0,lit=on.has(t)||sub;if(t==OB)pin=[(a0+a1)/2,r1];if(zs.has(t))hit=[(a0+a1)/2,r1];
@@ -519,7 +533,7 @@ function osb(){const el=$('#osb'),ctr=(i,t,r)=>`<circle r="${r}" class="ctr" dat
   <g transform="translate(80,165)">${L.o}${ctr(-2,'all',8)}</g><g transform="translate(338,165)">${Rw.o}${ctr(-1,'\u2191 '+mvs(OZ).slice(-1),22)}</g>
   <path d="M184,150 Q${(184+h[0])/2},${Math.min(h[1],150)-60} ${h[0]+3},${h[1]-3}" class="oar" marker-end="url(#oah)"/>`}
 const mvs=t=>{const a=[];for(;t&&t.p;t=t.p)a.unshift(t.m);return a},num=a=>a.map((m,i)=>(i%2?'':(i/2+1)+'.')+m).join(' ');
-function oinfo(){const{b,cur,ply}=OP,nm=onm(b),F=opnFens(),f=F.at(-1),c=new Chess(f),nx=cur?Object.values(b.k).sort((a,x)=>x.c-a.c).slice(0,6):[],nt=nm&&(n=>{const ks=Object.keys(OPNN).sort((a,x)=>x.length-a.length),fm=ks.find(k=>n.startsWith(k)),vr=ks.find(k=>k!=fm&&n.indexOf(k)>(fm||'').length);return[fm,vr].filter(Boolean)})(nm.n);
+function oinfo(){const{b,cur,ply}=OP,nm=onm(b),F=opnFens(),f=F.at(-1),c=new Chess(f),nx=cur?Object.values(b.k).sort((a,x)=>x.c-a.c).slice(0,6):[],nt=nm&&onote(nm.n);
  $('#opnI').innerHTML=nm?`<div class="on1">${nm.n}<span class="oeco">${nm.e}</span></div><div class="oln">${num(mvs(nm))}</div>
   <div class="why">${cur?nx.length?`Still in book: ${b.c-(b.n?1:0)} named lines continue from here.`:'End of the named line.':`Left book after ${num(mvs(b)).split(' ').slice(-1)} (move ${(ply>>1)+1}).`}</div>
   ${nx.length?`<div class="onx">${nx.map(x=>{const m=c.move(x.m);c.undo();return m?`<button class="btn" data-a="obk" data-k="${m.from+m.to+(m.promotion||'')}" title="${(onm(x)||nm).n}">${x.m}<small>${x.c}</small></button>`:''}).join('')}</div>`:''}
@@ -618,6 +632,8 @@ const hint=()=>{if(!pre||pre.fen!=G.fen()||!pre.best||busy)return;if(mode=='dril
 $('#undo').onclick=()=>{if(busy||mode!='play')return;do{G.undo();notes.pop()}while(G.turn()!=me&&G.history().length);arrow=null;peek=null;last=null;list();persist();draw();turn()};
 $('#reveal').onclick=()=>{if(busy||!pre||mode!='drill')return;if(shown)return line();arrow=pre.best;firstTry=false;solved();dRev=2;gplot($('#dPlot2'),dT,dG,2,D.fen,dPw);draw()};$('#skip').onclick=()=>{if(D)D.seen=Date.now();drill()};
 const g0=ls.get('ct.game',null);if(g0){$('#skill').value=g0.skill;if(!$('#skill').value)$('#skill').value='h1000';G.load_pgn(g0.pgn);me=g0.me;notes=g0.notes;flip=me=='b';list();draw();say('#coach','<span class="lbl">Coach</span><div class="why">Welcome back. Your game is where you left it.</div>');turn()}else newGame();$('#myUser').value=ls.get('ct.user','');fixUser($('#myUser').value);buildOpp();dcount();dlist();tab('mine');
+{const q=new URLSearchParams(location.search),go=t=>{if(!t||!/\[\w+ "|\b1\.\s*[a-hNBRQKO]/.test(t))return;$('#pgnTxt').value=t;doImport().then(gi=>gi!=null&&review(gi))};
+ if(q.has('text')||q.has('title')||q.has('shared')){history.replaceState(null,'',location.pathname);if(q.has('shared'))caches.open('share').then(c=>c.match('shared').then(r=>r&&r.text()).then(t=>{c.delete('shared');go(t)}));else go([q.get('title'),q.get('text'),q.get('url')].filter(Boolean).join('\n'))}}
 </script>
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>{const sw=navigator.serviceWorker,had=!!sw.controller;let done=0;
  sw.addEventListener('controllerchange',()=>{if(had&&!done){done=1;location.reload()}});
