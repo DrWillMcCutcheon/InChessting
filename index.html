@@ -151,7 +151,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
  <div class="left o2"><div class="bar" id="bar"><i id="barf" style="height:50%"></i></div><div class="bw"><div id="board"></div><svg class="arr" id="arr" viewBox="0 0 8 8"></svg></div></div>
 </div>
 
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build c4e988aad8</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 835e9713f0</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -425,7 +425,7 @@ function card(f,mm,P,myPw){const el=$('#dPlot'),Wd=el.clientWidth||300,H=el.clie
  el.innerHTML=sp(pw!=null?(mm?pw:100-pw):myPw)+mid+bookMark(f,P)+smudge(f,x,y,lv||PS[f].d,T)+(lv?`<text x="${Wd-4}" y="${H-3}" text-anchor="end" class="sl">depth ${lv}\u2026</text>`:'')+`<g class="${mm?'':'opp'}"><polyline points="${T.map((t,i)=>`${x(t.w)},${y(i)}`).join(' ')}" class="pl"/>`+T.map((t,i)=>pdot(t,b,x(t.w),y(i),i?2.6:3.4)).join('')+'</g>'+lb+`<circle id="scRing" class="ring" r="7.5" stroke-width="3" cx="-20" cy="-20"/>`;
  RV.LD={pts:T.map((t,i)=>({u:t.u,w:t.w,x:x(t.w),y:y(i),r:i,p:i==iT,mt:MT(t)})),dy:(H-10)/Math.max(1,N-1),wh:f.split(' ')[1]=='w',mm,n:N,b,fen:f};if(P)$('#dInf').innerHTML=depthTxt(f,P.u,P.san)}
 // a small open-book mark while the move played is still a named opening position
-let OLq=0;function bookMark(f,P){if(!P)return'';if(!OT){if(opnOK()&&!OLq++)opnLoad().then(redraw).catch(()=>{});return''}const c=new Chess(f);if(!c.move(U(P.u))||!OA[okey(c.fen())])return'';
+let OLq=0;function bookMark(f,P){if(!P)return'';if(!OT){if(!OLq++)opnLoad().then(redraw).catch(()=>{});return''}const c=new Chess(f);if(!c.move(U(P.u))||!OA[okey(c.fen())])return'';
  return`<g transform="translate(${$('#dPlot').viewBox.baseVal.width-44},4)" class="bk"><path d="M0,1.5Q3,0 6,1.5V9Q3,7.5 0,9ZM6,1.5Q9,0 12,1.5V9Q9,7.5 6,9Z"/><text x="15" y="8" class="sl">book</text></g>`}
 const redraw=()=>{if(!RV||mode!='review'||SC||SG||LN||peek)return;if(RV.VL)vGo(RV.VL.i,1);else{rvCalc();rvGo(RV.k,1)}};
 function ladder(j){const n=RV.N[j];if(j<0||!n){RV.LD=null;$('#dPlot').innerHTML='';$('#dInf').innerHTML='';return}card(RV.F[j],n.col==me,{u:n.u,san:mvn(j),cls:n.cls})}
@@ -492,17 +492,13 @@ function vGo(i,soft){const V=RV.VL,{S,F,E}=RV;if(!soft){SC=null;peek=null;LN=nul
  $('#rvCoach').innerHTML=`<span class="lbl">${RV.g.lab==2?'Analysis board \u00b7 you play both sides':RV.g.lab?'Your game \u00b7 play either side to try lines':`Side line from ${V.base?mvn(V.base-1):'the start'}`}</span><div class="why">${G.in_checkmate()?'Checkmate. ':''}${qv}</div>`;
  if(RV.g.lab)labStats();ep(G.fen());opn();navUI();rvGraph(V.base+V.i,1e9);draw()}
 // --- openings: the Lichess opening names (CC0) as a move tree, drawn as a sunburst: ring n = move n, arc size = named lines below it
-let OT=null,OL=null,OZ=null,OB=null,OP=null;const OA={},ON=[],okey=f=>f.split(' ').slice(0,3).join(' ');
-// the move tree is built here (cheap); the board position of every node is worked out in a background worker so the page never stalls
+let OT=null,OL=null,OZ=null,OB=null,OP=null;const OA={},ON=[],okey=f=>{let h=0x811c9dc5;for(const c of f.split(' ').slice(0,3).join(' '))h=Math.imul(h^c.charCodeAt(0),0x01000193)>>>0;return h.toString(36)}; // position fingerprint, same as the build's
+// the move tree is built here (cheap); the fingerprint of every node's position was worked out when the app was built (OPNK, same DFS order)
 function opnTrie(src){const R={k:{},d:0,m:''},O=[];for(const l of src.split('\n')){const[e,n,m]=l.split('|');let t=R;for(const x of m.split(' '))t=t.k[x]||(t.k[x]={k:{},m:x,p:t,d:t.d+1});t.n=n;t.e=e}
  const d=t=>{t.i=O.push(t)-1;t.c=t.n?1:0;Object.values(t.k).forEach(x=>{d(x);t.c+=x.c})};d(R);return{R,O}}
-const opnKeys=src=>{const{R}=opnTrie(src),c=new Chess(),K=[],d=t=>{K.push(c.fen().split(' ').slice(0,3).join(' '));Object.values(t.k).forEach(x=>{c.move(x.m);d(x);c.undo()})};d(R);return K};
-const opnOK=()=>!RV||RV.g.lab||RV.E.length>=RV.F.length; // wait until the game's first engine pass has filled the graph
-function opnLoad(){return OL||(OL=new Promise((r,j)=>{const e=document.createElement('script');e.src='openings.js';e.onload=r;e.onerror=j;document.head.append(e)}).then(async()=>{
+function opnLoad(){return OL||(OL=new Promise((r,j)=>{const e=document.createElement('script');e.src='openings.js';e.onload=r;e.onerror=j;document.head.append(e)}).then(()=>{
  const{R,O}=opnTrie(OPN),hue=(t,a0,a1)=>{t.h=((a0+a1)/2*360+250)%360;const K=Object.values(t.k).sort((a,b)=>b.c-a.c),S=K.reduce((a,x)=>a+x.c,0);let a=a0;K.forEach(x=>{const w=(a1-a0)*x.c/S;hue(x,a,a+w);a+=w})};hue(R,0,1);ON.push(...O);
- const K=await new Promise(r=>{try{const u=n=>new URL(n,location.href).href,w=new Worker(URL.createObjectURL(new Blob([`importScripts('${u('chess.js')}','${u('openings.js')}');${opnTrie};postMessage((${opnKeys})(OPN))`],{type:'text/javascript'})));
-  w.onmessage=({data})=>{w.terminate();r(data)};w.onerror=()=>{w.terminate();r(opnKeys(OPN))}}catch{r(opnKeys(OPN))}});
- K.forEach((k,i)=>OA[k]??=O[i]);OT=R;OZ=OT;if(RV)setTimeout(redraw)}))}
+ const K=OPNK.split(',');K.forEach((k,i)=>OA[k]??=O[i]);OT=R;OZ=OT;if(RV)setTimeout(redraw)}))}
 const onm=t=>{while(t&&!t.n)t=t.p;return t},onote=n=>{const ks=Object.keys(OPNN).sort((a,x)=>x.length-a.length),fm=ks.find(k=>n.startsWith(k)),vr=ks.find(k=>k!=fm&&n.indexOf(k)>(fm||'').length);return[fm,vr].filter(Boolean)};
 // how mainline each move of a line is, from how many named lines continue through it compared with its alternatives (very approximate):
 // 1 = mainline, .5 = known side line, .25 = rare; it only ever steps down, and the list stops where the line leaves the book
@@ -512,7 +508,7 @@ function bookLv(M,F){if(!OT)return[];const ky=M.join(' ');if(BLc[ky])return BLc[
   let r=x.c==Math.max(...K.map(y=>y.c))||s>=.15?1:s<.02?.25:.5;if(nm&&POP.some(k=>nm.n.includes(k)))r=Math.max(r,.5);o.push(lv=Math.min(lv,r));t=x}
  return BLc[ky]=o}
 function opnFens(){const V=RV.VL;return V?RV.F.slice(0,V.base+1).concat(V.mv.slice(0,V.i).map(e=>e.fen)):RV.F.slice(0,RV.k+1)}
-async function opn(on=1){const box=$('#opn');if(!on||!RV){box.hidden=true;$('#obk').innerHTML='';return}box.hidden=false;if(!OT){if(!opnOK()){$('#opnS').textContent='after the first pass...';return}$('#opnS').textContent='loading...';try{await opnLoad()}catch{$('#opnS').textContent='unavailable offline';return}}
+async function opn(on=1){const box=$('#opn');if(!on||!RV){box.hidden=true;$('#obk').innerHTML='';return}box.hidden=false;if(!OT){$('#opnS').textContent='loading...';try{await opnLoad()}catch{$('#opnS').textContent='unavailable offline';return}}
  const F=opnFens();let k=F.length;while(k--&&!OA[okey(F[k])]);const b=OA[okey(F[Math.max(k,0)])]||OT,cur=k==F.length-1;const ky=b.i+':'+k+':'+F.length;if(ky==OP?.ky&&!box.dataset.dirty)return;if(b!==OB){OB=b;OZ=b.d>6?(t=>{while(t.d>b.d-5)t=t.p;return t})(b):OT}OP={b,cur,ply:k,ky};
  const nm=onm(b),nk=nm&&onote(nm.n),br=nk&&nk.length?OPNN[nk.at(-1)].split(/(?<=\.)\s/)[0]:'';$('#opnS').textContent=nm?nm.e+' '+nm.n.split(':')[0]:'Starting position';
  $('#obk').innerHTML=nm?cur?`<span class="lbl">Book \u00b7 ${nm.n}</span>${br}`:`<span class="lbl">Out of book</span>${nm.n}, left after move ${(k>>1)+1}.`:'';if(box.open)osb(),oinfo()}
