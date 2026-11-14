@@ -1,5 +1,5 @@
 // offline support: the page itself is network-first (fresh when online, cached copy offline); other files cache-first, refreshed in the background
-const V='sb-81c02ff15a',SHELL=['./', 'index.html', 'chess.js', 'stockfish.js', 'sf19.js', 'sf19.wasm', 'openings.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
+const V='sb-a67bfac726',SHELL=['./', 'index.html', 'chess.js', 'stockfish.js', 'sf19.js', 'sf19.wasm', 'openings.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!=V&&k!='share').map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method=='POST'&&new URL(e.request.url).pathname.endsWith('/share')){e.respondWith((async()=>{const d=await e.request.formData();let t='';for(const[k,v]of d.entries())t+=(typeof v=='string'?v:await v.text())+'\n';await (await caches.open('share')).put('shared',new Response(t));return Response.redirect('./?shared=1',303)})());return}
