@@ -164,7 +164,7 @@ label.tg{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 </div>
 
 <details id="about" style="text-align:center;font:11px var(--f);color:var(--mute);margin:16px auto 0;max-width:420px;padding:0 16px"><summary style="cursor:pointer;opacity:.7">About &amp; licences</summary><p style="margin:6px 0;line-height:1.5">InChessting &copy; 2026 Will McCutcheon. Free software under the <a href="https://github.com/DrWillMcCutcheon/InChessting/blob/main/LICENSE" target="_blank" rel="noopener" style="color:inherit">GNU GPL v3</a>, with NO WARRANTY. Uses Stockfish (GPL-3.0), chess.js (BSD-2), the tensorflow_chessbot network (MIT) and Lichess opening names (CC0). Source code and full credits: <a href="https://github.com/DrWillMcCutcheon/InChessting" target="_blank" rel="noopener" style="color:inherit">github.com/DrWillMcCutcheon/InChessting</a></p></details>
-<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build c3ec0af463</p>
+<p style="text-align:center;font:11px monospace;opacity:.45;margin:12px 0 24px">build 4ddc194677</p>
 <script src="chess.js"></script>
 <script>
 const $=s=>document.querySelector(s),ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -289,9 +289,13 @@ $('#picRead').onclick=async()=>{const{img,q}=PIC,side=Math.max(Math.hypot(q[1][0
  const F_=[...Array(64)].map((_,k)=>{const r=k>>3,c=k&7,v=(i,j)=>out[(r*32+i)*256+c*32+j],ring=[],ins=[];for(let i=1;i<31;i++)for(let j=1;j<31;j++){const e=i<3||i>28||j<3||j>28;if(e&&i>0&&j>0)ring.push(v(i,j));else if(i>=6&&i<26&&j>=6&&j<26)ins.push(v(i,j))}
   ring.sort((a,b)=>a-b);const bg=ring[ring.length>>1],occ=ins.filter(x=>Math.abs(x-bg)>24).length/ins.length>.1,px=ins.filter(x=>Math.abs(x-bg)>14);return{occ,w:px.filter(x=>x>Math.max(bg+14,215)).length>px.filter(x=>x<70).length}}),
   am=z=>z.indexOf(Math.max(...z)),dis=P.filter((z,k)=>F_[k].occ!=(am(z)>0)).length,own=dis>3; // a piece style the network does not know: let the pixels decide what is there
- let B=P.map((z,k)=>{const i=am(z),f=F_[k];if(!own)return{p:i?PCS[i-1]:'',u:z[i]<.8||f.occ!=(i>0),c:z[i]};if(!f.occ)return{p:'',u:i>0&&z[i]>.9};
-  const t=f.w?z.slice(1,7):z.slice(7,13),j=am(t),c=t[j]/t.reduce((a,b)=>a+b);return{p:(f.w?'KQRBNP':'kqrbnp')[j],u:c<.6,c}});
- for(const K of'Kk'){const ks=B.filter(x=>x.p==K).sort((a,b)=>b.c-a.c);ks.slice(1).forEach(x=>{x.p='';x.u=true})} // one king each: keep the surest
+ let B=P.map((z,k)=>{if(k<8||k>55)z=z.map((v,c)=>c==6||c==12?0:v); // no pawns on the first or last rank
+  const i=am(z),f=F_[k];if(!own)return{p:i?PCS[i-1]:'',u:z[i]<.8||f.occ!=(i>0),c:z[i]};if(!f.occ)return{p:'',u:i>0&&z[i]>.9};
+  const t=f.w?z.slice(1,7):z.slice(7,13),n=t.reduce((a,b)=>a+b),j=am(t),c=t[j]/n;
+  // the pixels see something but the network gives no piece of that colour any weight (a smudge, an arrow, a coordinate): leave it empty and dashed, never a default king
+  return n<.02?{p:'',u:true}:{p:(f.w?'KQRBNP':'kqrbnp')[j],u:c<.6,c}});
+ for(const K of'Kk'){const ks=B.filter(x=>x.p==K).sort((a,b)=>b.c-a.c);ks.slice(1).forEach(x=>{x.p='';x.u=true}); // one king each: keep the surest
+  if(!ks.length){const w=K=='K',i=w?1:7,ks_=k=>P[k][i]+P[k].slice(i,i+6).reduce((a,b)=>a+b)+(F_[k].w==w)*.5+(k<8||k>55)*.5;let bi=-1;B.forEach((x,k)=>{if((x.u||!x.p||/p/i.test(x.p)&&(k<8||k>55))&&F_[k].occ&&(bi<0||ks_(k)>ks_(bi)))bi=k});if(bi>=0)B[bi]={p:K,u:true,c:0}}} // no king read: the likeliest square of that colour
  const row=c=>{const r=B.map((x,i)=>x.p==c?i>>3:null).filter(v=>v!=null);return r.length?r.reduce((a,b)=>a+b)/r.length:3.5},fl=row('K')+row('P')<row('k')+row('p');if(fl)B.reverse(); // White at the top: the screenshot was from Black's side
  ED={B,turn:fl?'b':'w',sel:'P'};$('#picA').hidden=true;$('#picB').hidden=false;edDraw()};
 // photos (a screen photographed, a real board) come out washed out and striped: smooth the stripes away and stretch the contrast to full range, as in a screenshot
